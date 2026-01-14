@@ -1,14 +1,13 @@
 # CrayCon Creepers (CCC) - Team Website
 
 ## Project Overview
-Team website for CrayCon Creepers, a Crayon Consulting team competing in a Minecraft-themed company competition. The site lives on `creepers.craycon.no` and `ccc.d0.si`.
+Team website for CrayCon Creepers, a Crayon Consulting team competing in a Minecraft-themed, Microsoft-focused hackathon formerly known as the Arctic SharePoint Challenge (ASPC). The site lives on `creepers.craycon.no` and `ccc.d0.si`.
 
 ## Brand Identity
 
 ### Team Name Layers
 - **CrayCon Creepers** = CCC
-- **CrayCon** = Crayon Consulting shorthand + hacker convention vibe (DEF CON, Black Hat)
-- **CCC** = Homage to Chaos Computer Club (legendary European hacker collective)
+- **CrayCon** = Crayon Consulting shorthand + hacker con vibes
 - **Creepers** = Minecraft's iconic explosive mob
 
 ### Design Aesthetic
@@ -43,19 +42,12 @@ Fusion of:
 - Computer/hacking culture references encouraged
 - Year: 2026
 
-### Team Member (Project Owner)
-- Web developer, 18+ years experience, SharePoint/Full-Stack/Node/TypeScript
-- Stack: TypeScript, JavaScript, Rust, C/C++
-- Interests: AI/LLMs, IoT, embedded systems, gaming, retro computing
-
 ## Technical Guidelines
 
 ### Preferred Stack
 - **Runtime**: Bun > Deno > Node (Bun preferred for speed)
 - **Framework**: React + Vite (most agent-friendly)
 - **Styling**: Tailwind CSS (utility-first, easy to modify)
-- **Animations**: Framer Motion or CSS (keep performant)
-- **Backend**: Hono for API if needed, otherwise static
 
 ### Code Style
 - TypeScript preferred where it makes sense
@@ -65,9 +57,7 @@ Fusion of:
 - Performance-conscious (fast load times)
 
 ### Deployment Targets
-- Cloudflare Pages (preferred)
-- Vercel (alternative)
-- Should handle both domains: creepers.craycon.no and ccc.d0.si
+- Cloudflare Worker (see `./wrangler.toml` for config)
 
 ## Content Guidelines
 
@@ -115,7 +105,7 @@ Fusion of:
 ## Assets
 
 ### Logo
-- File: `logo.png` (provided)
+- File: `./public/logo.png`
 - Features: CCC letters with creeper faces, diamond swords, shield badge
 - Colors: Green, black, some yellow/orange accents
 - Use prominently in hero section
@@ -138,7 +128,7 @@ Fusion of:
 - User values clean, maintainable code over clever hacks
 - User will customize content later - focus on structure and style
 - Minecraft + hacker culture fusion is the key theme
-- The CCC acronym is intentional and important (Chaos Computer Club homage)
+- The CCC acronym is intentional
 
 ## Future Enhancements (Maybe)
 - Team member profiles with stats
@@ -150,4 +140,4 @@ Fusion of:
 
 ---
 
-Remember: This is a team of tech professionals having fun with a Minecraft competition. Balance professional quality with playful, geeky charm. Think "esports team meets hacker conference meets Minecraft modding community."
+Remember: This is a team of tech professionals having fun with a Minecraft competition. Balance professional quality with playful, geeky charm. Think "esports team + hacker conference + Minecraft modding community."

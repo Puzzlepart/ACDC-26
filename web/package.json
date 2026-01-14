@@ -1,5 +1,11 @@
 {
   "name": "craycon-creepers",
+  "description": "CrayCon Creepers team website",
+  "keywords": [
+    "web",
+    "acdc26",
+    "hackathon"
+  ],
   "private": true,
   "version": "1.0.0",
   "type": "module",

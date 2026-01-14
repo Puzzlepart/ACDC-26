@@ -1,0 +1,38 @@
+{
+  "name": "acdc-26",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CrayCon Creepers ACDC-26 monorepo",
+  "workspaces": [
+    "web/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present && rm -rf node_modules"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Puzzlepart/ACDC-26.git"
+  },
+  "keywords": [
+    "acdc26",
+    "hackathon",
+    "ccc",
+    "monorepo",
+    "sharepoint",
+    "craycon"
+  ],
+  "contributors": [
+    "damsleth",
+    "siifux",
+    "remi749",
+    "jenunn"
+  ],
+  "license": "WTFPL"
+}

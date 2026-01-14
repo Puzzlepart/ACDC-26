@@ -1,0 +1,76 @@
+# global .gitignore file for the whole CrayCon Creepers @ ACDC26 monorepo (github/puzzlepart/ACDC-26)
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Bun
+.bun/
+bun.lockb
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.vercel/
+.output/
+
+# Environment variables
+.env
+.env*.local
+.env.production
+.env.development
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Misc
+.cache/
+.temp/
+.tmp/
+*.tsbuildinfo
+
+# OS
+Thumbs.db
+.DS_Store
+.Spotlight-V100
+.Trashes
+
+# Optional: Cloudflare
+.dev.vars
+wrangler.toml.local
+
+# Optional: Keep these if you want to track them
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# doc: specs, agent ramblings, plans etc.
+_doc

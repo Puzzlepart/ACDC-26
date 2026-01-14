@@ -1,5 +1,3 @@
 name = "craycon-creepers"
 compatibility_date = "2026-01-14"
-
-# Serve ./dist as static assets
 assets = { directory = "./dist" }

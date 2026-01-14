@@ -1,7 +1,7 @@
 import Icon from './Icon'
 
 const Contact = () => {
-  return (
+  return ( 
     <footer id="contact" className="py-20 px-4 md:px-8 border-t border-creeper/20">
       <div className="max-w-4xl mx-auto">
         {/* Section header */}

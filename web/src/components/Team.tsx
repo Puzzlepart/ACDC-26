@@ -1,7 +1,6 @@
 const teamMembers = [
   { name: 'Sindre', role: 'Team Lead', status: 'online', specialty: 'Strategy' },
   { name: 'Øistein', role: 'Builder', status: 'online', specialty: 'Architecture' },
-  { name: 'Remi', role: 'Combat Specialist', status: 'online', specialty: 'PvP' },
   { name: 'Kim', role: 'Redstone Engineer', status: 'online', specialty: 'Automation' },
 ]
 
@@ -58,7 +57,7 @@ const Team = () => {
 
         {/* Note */}
         <p className="text-center text-gray-500 text-sm mt-8 font-mono">
-          <span className="text-neon-green">$</span> Four operatives. Maximum destruction.
+          <span className="text-neon-green">$</span> Three operatives. Maximum destruction.
         </p>
       </div>
     </section>

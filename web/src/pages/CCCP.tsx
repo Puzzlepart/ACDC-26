@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Icon from '../components/Icon'
 
 const CCCP = () => {
   const [comradeCount, setComradeCount] = useState(0)
@@ -58,9 +59,9 @@ const CCCP = () => {
       {/* Scrolling propaganda banner */}
       <div className="bg-yellow-500 text-red-900 py-2 overflow-hidden relative z-10">
         <div className="animate-marquee whitespace-nowrap font-bold">
-          <span className="mx-8">⚒️ {slogans[currentSlogan]} ⚒️</span>
-          <span className="mx-8">🎖️ AI AUTOMATION IS THE FUTURE OF THE PEOPLE 🎖️</span>
-          <span className="mx-8">⛏️ MINE FOR THE MOTHERLAND ⛏️</span>
+          <span className="mx-8"><Icon name="hammer" className="inline" /> {slogans[currentSlogan]} <Icon name="hammer" className="inline" /></span>
+          <span className="mx-8"><Icon name="medal" className="inline" /> AI AUTOMATION IS THE FUTURE OF THE PEOPLE <Icon name="medal" className="inline" /></span>
+          <span className="mx-8"><Icon name="pickaxe" className="inline" /> MINE FOR THE MOTHERLAND <Icon name="pickaxe" className="inline" /></span>
         </div>
       </div>
 
@@ -88,32 +89,35 @@ const CCCP = () => {
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           {[
             {
-              icon: '🌾',
+              icon: 'leaf' as const,
               title: 'Wheat Harvester AI',
               description: 'Tireless digital workers that harvest wheat 24/7. No sleep, no breaks, only bread for the people.',
               features: ['Auto-replanting', 'Optimal harvest timing', 'Zero waste policy']
             },
             {
-              icon: '⛏️',
+              icon: 'cube' as const,
               title: 'Mining Collective AI',
               description: 'Our agents delve deep into the earth, extracting diamonds, iron, and coal for the glory of your village.',
               features: ['Strip mining protocols', 'Ore detection algorithms', 'TNT optimization']
             },
             {
-              icon: '🏗️',
+              icon: 'cubes' as const,
               title: 'Construction Bureau AI',
               description: 'From humble huts to grand fortresses, our AI architects build the infrastructure of tomorrow.',
               features: ['Blueprint execution', 'Material calculation', 'Structural integrity']
             }
           ].map((service, i) => (
             <div key={i} className="bg-gradient-to-b from-red-900/50 to-red-950/50 border-2 border-yellow-500/50 rounded-lg p-6 hover:border-yellow-400 transition-all hover:scale-105">
-              <div className="text-5xl mb-4 text-center">{service.icon}</div>
+              <div className="mb-4 text-center">
+                <Icon name={service.icon} size="5xl" className="text-yellow-400" />
+              </div>
               <h3 className="text-xl font-bold text-yellow-400 mb-3 text-center">{service.title}</h3>
               <p className="text-gray-300 text-sm mb-4">{service.description}</p>
               <ul className="space-y-2">
                 {service.features.map((feature, j) => (
                   <li key={j} className="text-sm text-gray-400 flex items-center gap-2">
-                    <span className="text-green-500">✓</span> {feature}
+                    <Icon name="check" className="text-green-500" />
+                    {feature}
                   </li>
                 ))}
               </ul>
@@ -124,13 +128,15 @@ const CCCP = () => {
         {/* Statistics */}
         <div className="grid md:grid-cols-4 gap-4 mb-12">
           {[
-            { label: 'AI Agents Deployed', value: comradeCount.toLocaleString(), icon: '🤖' },
-            { label: 'Blocks Placed', value: blocksPlaced.toLocaleString(), icon: '⛏️' },
-            { label: 'Villages Served', value: '420', icon: '🏘️' },
-            { label: 'Creepers Defeated', value: '1,337', icon: '💥' }
+            { label: 'AI Agents Deployed', value: comradeCount.toLocaleString(), icon: 'robot' as const },
+            { label: 'Blocks Placed', value: blocksPlaced.toLocaleString(), icon: 'cube' as const },
+            { label: 'Villages Served', value: '420', icon: 'home' as const },
+            { label: 'Creepers Defeated', value: '1,337', icon: 'bomb' as const }
           ].map((stat, i) => (
             <div key={i} className="bg-red-900/50 border border-yellow-500/30 rounded p-4 text-center">
-              <div className="text-3xl mb-2">{stat.icon}</div>
+              <div className="mb-2">
+                <Icon name={stat.icon} size="3xl" className="text-yellow-400" />
+              </div>
               <div className="text-2xl font-bold text-yellow-400">{stat.value}</div>
               <div className="text-sm text-gray-400">{stat.label}</div>
             </div>
@@ -140,20 +146,22 @@ const CCCP = () => {
         {/* How It Works */}
         <div className="bg-white/5 border border-yellow-500/30 rounded-lg p-8 mb-12">
           <h3 className="text-2xl font-bold text-yellow-400 mb-6 text-center" style={{ fontFamily: 'serif' }}>
-            ⚙️ HOW OUR AI HARVESTERS SERVE THE VILLAGE ⚙️
+            <Icon name="cog" className="inline mr-2" /> HOW OUR AI HARVESTERS SERVE THE VILLAGE <Icon name="cog" className="inline ml-2" />
           </h3>
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              { step: '1', title: 'Deploy Agent', desc: 'Spawn an AI worker in your Minecraft world', icon: '🚀' },
-              { step: '2', title: 'Assign Tasks', desc: 'Tell it what to farm, mine, or build', icon: '📋' },
-              { step: '3', title: 'Watch & Relax', desc: 'The AI works while you do other things', icon: '👀' },
-              { step: '4', title: 'Collect Rewards', desc: 'Enjoy the fruits of automated labor', icon: '🎁' }
+              { step: '1', title: 'Deploy Agent', desc: 'Spawn an AI worker in your Minecraft world', icon: 'rocket' as const },
+              { step: '2', title: 'Assign Tasks', desc: 'Tell it what to farm, mine, or build', icon: 'clipboard' as const },
+              { step: '3', title: 'Watch & Relax', desc: 'The AI works while you do other things', icon: 'eye' as const },
+              { step: '4', title: 'Collect Rewards', desc: 'Enjoy the fruits of automated labor', icon: 'gift' as const }
             ].map((item, i) => (
               <div key={i} className="text-center">
                 <div className="w-16 h-16 mx-auto mb-3 bg-yellow-500 text-red-900 rounded-full flex items-center justify-center text-2xl font-bold">
                   {item.step}
                 </div>
-                <div className="text-3xl mb-2">{item.icon}</div>
+                <div className="mb-2">
+                  <Icon name={item.icon} size="3xl" className="text-yellow-400" />
+                </div>
                 <h4 className="font-bold text-yellow-400 mb-1">{item.title}</h4>
                 <p className="text-sm text-gray-400">{item.desc}</p>
               </div>
@@ -164,19 +172,22 @@ const CCCP = () => {
         {/* Testimonials */}
         <div className="mb-12">
           <h3 className="text-2xl font-bold text-yellow-400 mb-6 text-center" style={{ fontFamily: 'serif' }}>
-            🎖️ WORDS FROM THE VILLAGERS 🎖️
+            <Icon name="medal" className="inline mr-2" /> WORDS FROM THE VILLAGERS <Icon name="medal" className="inline ml-2" />
           </h3>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { name: 'Farmer Villager #47', quote: 'Hrmmm! The AI harvested my entire wheat field while I stood in a corner staring at a wall. 10/10.', role: 'Agricultural Sector' },
-              { name: 'Steve', quote: 'I used to mine for hours. Now the AI does it and I can finally touch grass (the real kind).', role: 'Former Manual Laborer' },
-              { name: 'Nitwit Villager', quote: '*stares blankly* ...hrm.', role: 'Moral Support Division' }
+              { name: 'Farmer Villager #47', quote: 'Hrmmm! The AI harvested my entire wheat field while I stood in a corner staring at a wall. 10/10.', role: 'Agricultural Sector', icon: 'leaf' as const },
+              { name: 'Steve', quote: 'I used to mine for hours. Now the AI does it and I can finally touch grass (the real kind).', role: 'Former Manual Laborer', icon: 'user' as const },
+              { name: 'Nitwit Villager', quote: '*stares blankly* ...hrm.', role: 'Moral Support Division', icon: 'brain' as const }
             ].map((testimonial, i) => (
               <div key={i} className="bg-red-900/30 border border-yellow-500/20 rounded-lg p-6">
-                <p className="text-gray-300 italic mb-4">"{testimonial.quote}"</p>
+                <p className="text-gray-300 italic mb-4">
+                  <Icon name="quote" className="text-yellow-500/50 mr-1" />
+                  {testimonial.quote}
+                </p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center text-lg">
-                    {['👨‍🌾', '🧑', '🤪'][i]}
+                  <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center">
+                    <Icon name={testimonial.icon} className="text-red-900" />
                   </div>
                   <div>
                     <div className="font-bold text-yellow-400">{testimonial.name}</div>
@@ -191,24 +202,28 @@ const CCCP = () => {
         {/* Pricing/CTA */}
         <div className="bg-gradient-to-r from-red-900/50 to-red-800/50 border-2 border-yellow-500 rounded-lg p-8 mb-12">
           <h3 className="text-2xl font-bold text-yellow-400 mb-2 text-center" style={{ fontFamily: 'serif' }}>
-            ⚒️ DEPLOY YOUR AI WORKFORCE TODAY ⚒️
+            <Icon name="hammer" className="inline mr-2" /> DEPLOY YOUR AI WORKFORCE TODAY <Icon name="hammer" className="inline ml-2" />
           </h3>
           <p className="text-center text-gray-400 mb-6">Choose your path to automated prosperity</p>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { tier: 'Worker', price: '64 Emeralds', agents: '1 AI Agent', features: ['Basic harvesting', 'Simple mining', 'Community support'] },
-              { tier: 'Stakhanovite', price: '256 Emeralds', agents: '5 AI Agents', features: ['Advanced farming', 'Deep mining', 'Priority support', 'Custom blueprints'], popular: true },
-              { tier: 'Politburo', price: '1024 Emeralds', agents: 'Unlimited Agents', features: ['All features', 'Nether operations', 'End dimension access', 'Dedicated server'] }
+              { tier: 'Worker', price: '64 Emeralds', agents: '1 AI Agent', features: ['Basic harvesting', 'Simple mining', 'Community support'], icon: 'user' as const },
+              { tier: 'Stakhanovite', price: '256 Emeralds', agents: '5 AI Agents', features: ['Advanced farming', 'Deep mining', 'Priority support', 'Custom blueprints'], popular: true, icon: 'users' as const },
+              { tier: 'Politburo', price: '1024 Emeralds', agents: 'Unlimited Agents', features: ['All features', 'Nether operations', 'End dimension access', 'Dedicated server'], icon: 'crown' as const }
             ].map((plan, i) => (
               <div key={i} className={`bg-black/30 rounded-lg p-6 ${plan.popular ? 'border-2 border-yellow-400 scale-105' : 'border border-yellow-500/30'}`}>
                 {plan.popular && <div className="text-center text-xs font-bold text-red-900 bg-yellow-400 rounded-full px-3 py-1 mb-3 inline-block">MOST POPULAR</div>}
-                <h4 className="text-xl font-bold text-yellow-400 mb-1">{plan.tier}</h4>
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon name={plan.icon} className="text-yellow-400" />
+                  <h4 className="text-xl font-bold text-yellow-400">{plan.tier}</h4>
+                </div>
                 <div className="text-3xl font-bold text-white mb-1">{plan.price}</div>
                 <div className="text-sm text-gray-500 mb-4">{plan.agents}</div>
                 <ul className="space-y-2 mb-6">
                   {plan.features.map((f, j) => (
                     <li key={j} className="text-sm text-gray-300 flex items-center gap-2">
-                      <span className="text-green-500">✓</span> {f}
+                      <Icon name="check" className="text-green-500" />
+                      {f}
                     </li>
                   ))}
                 </ul>
@@ -226,11 +241,11 @@ const CCCP = () => {
             <h3 className="text-3xl font-bold mb-2">FOR THE GLORY OF THE VILLAGE!</h3>
             <p className="mb-6 text-lg">Let our AI agents do the work while you enjoy the rewards</p>
             <div className="flex gap-4 justify-center flex-wrap">
-              <button type="button" className="px-8 py-3 bg-red-700 text-yellow-400 font-bold rounded-lg hover:bg-red-600 transition text-lg">
-                ⛏️ START AUTOMATING
+              <button type="button" className="px-8 py-3 bg-red-700 text-yellow-400 font-bold rounded-lg hover:bg-red-600 transition text-lg flex items-center gap-2">
+                <Icon name="cube" /> START AUTOMATING
               </button>
-              <button type="button" className="px-8 py-3 bg-red-900 text-yellow-400 font-bold rounded-lg hover:bg-red-800 transition text-lg">
-                📊 VIEW LIVE DASHBOARD
+              <button type="button" className="px-8 py-3 bg-red-900 text-yellow-400 font-bold rounded-lg hover:bg-red-800 transition text-lg flex items-center gap-2">
+                <Icon name="chart" /> VIEW LIVE DASHBOARD
               </button>
             </div>
           </div>

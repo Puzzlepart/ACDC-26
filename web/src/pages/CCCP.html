@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCCP - Craycon Creepers Central Production</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #1a0a0a;
+      color: white;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    /* Star pattern background */
+    .star-bg {
+      position: fixed;
+      inset: 0;
+      opacity: 0.05;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l6.9 21.2h22.3l-18 13.1 6.9 21.2L30 42.4l-18 13.1 6.9-21.2-18-13.1h22.3z' fill='%23ff0000'/%3E%3C/svg%3E");
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Header banner */
+    .header-banner {
+      background: linear-gradient(to right, #7f1d1d, #dc2626, #7f1d1d);
+      padding: 1rem 0;
+      border-bottom: 4px solid #eab308;
+      position: relative;
+      z-index: 10;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+
+    .header-logo {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+    }
+
+    .header-title {
+      font-family: Georgia, serif;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #facc15;
+      letter-spacing: 0.1em;
+    }
+
+    @media (max-width: 768px) {
+      .header-title { font-size: 1.25rem; }
+      .header-logo { width: 50px; height: 50px; }
+    }
+
+    /* Scrolling banner */
+    .marquee-banner {
+      background-color: #eab308;
+      color: #7f1d1d;
+      padding: 0.5rem 0;
+      overflow: hidden;
+      position: relative;
+      z-index: 10;
+    }
+
+    .marquee-content {
+      display: inline-block;
+      white-space: nowrap;
+      font-weight: bold;
+      animation: marquee 20s linear infinite;
+    }
+
+    .marquee-content span {
+      margin: 0 2rem;
+    }
+
+    @keyframes marquee {
+      0% { transform: translateX(100vw); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* Main content */
+    .main-content {
+      position: relative;
+      z-index: 10;
+      padding: 2rem 1rem;
+    }
+
+    /* Hero section */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .hero-logo {
+      width: 160px;
+      height: 160px;
+      margin: 0 auto 1rem;
+      filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.6));
+    }
+
+    .hero-box {
+      display: inline-block;
+      background-color: #991b1b;
+      border: 4px solid #eab308;
+      padding: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title {
+      font-family: Georgia, serif;
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #facc15;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: #fef08a;
+    }
+
+    .hero-description {
+      color: #d1d5db;
+      max-width: 48rem;
+      margin: 0 auto;
+      font-size: 1.125rem;
+      line-height: 1.75;
+    }
+
+    .hero-description .highlight {
+      color: #facc15;
+      font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+      .hero-title { font-size: 1.5rem; }
+      .hero-subtitle { font-size: 1rem; }
+    }
+
+    /* Services grid */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .service-card {
+      background: linear-gradient(to bottom, rgba(127, 29, 29, 0.5), rgba(69, 10, 10, 0.5));
+      border: 2px solid rgba(234, 179, 8, 0.5);
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      transition: all 0.3s;
+    }
+
+    .service-card:hover {
+      border-color: #facc15;
+      transform: scale(1.05);
+    }
+
+    .service-icon {
+      font-size: 3rem;
+      color: #facc15;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .service-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #facc15;
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .service-description {
+      color: #d1d5db;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+
+    .service-features {
+      list-style: none;
+    }
+
+    .service-features li {
+      font-size: 0.875rem;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .service-features li i {
+      color: #22c55e;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background-color: rgba(127, 29, 29, 0.5);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+      border-radius: 0.25rem;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-icon {
+      font-size: 1.875rem;
+      color: #facc15;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #facc15;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: #9ca3af;
+    }
+
+    /* How it works */
+    .how-it-works {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+      border-radius: 0.5rem;
+      padding: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .section-title {
+      font-family: Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #facc15;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .step {
+      text-align: center;
+    }
+
+    .step-number {
+      width: 4rem;
+      height: 4rem;
+      margin: 0 auto 0.75rem;
+      background-color: #eab308;
+      color: #7f1d1d;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .step-icon {
+      font-size: 1.875rem;
+      color: #facc15;
+      margin-bottom: 0.5rem;
+    }
+
+    .step-title {
+      font-weight: bold;
+      color: #facc15;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-desc {
+      font-size: 0.875rem;
+      color: #9ca3af;
+    }
+
+    /* Testimonials */
+    .testimonials {
+      margin-bottom: 3rem;
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .testimonial-card {
+      background-color: rgba(127, 29, 29, 0.3);
+      border: 1px solid rgba(234, 179, 8, 0.2);
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+    }
+
+    .testimonial-quote {
+      color: #d1d5db;
+      font-style: italic;
+      margin-bottom: 1rem;
+    }
+
+    .testimonial-quote i {
+      color: rgba(234, 179, 8, 0.5);
+      margin-right: 0.25rem;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .testimonial-avatar {
+      width: 2.5rem;
+      height: 2.5rem;
+      background-color: #ca8a04;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7f1d1d;
+    }
+
+    .testimonial-name {
+      font-weight: bold;
+      color: #facc15;
+    }
+
+    .testimonial-role {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    /* Pricing */
+    .pricing {
+      background: linear-gradient(to right, rgba(127, 29, 29, 0.5), rgba(153, 27, 27, 0.5));
+      border: 2px solid #eab308;
+      border-radius: 0.5rem;
+      padding: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .pricing-subtitle {
+      text-align: center;
+      color: #9ca3af;
+      margin-bottom: 1.5rem;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .pricing-card {
+      background-color: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+    }
+
+    .pricing-card.popular {
+      border: 2px solid #facc15;
+      transform: scale(1.05);
+    }
+
+    .popular-badge {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #7f1d1d;
+      background-color: #facc15;
+      border-radius: 9999px;
+      padding: 0.25rem 0.75rem;
+      display: inline-block;
+      margin-bottom: 0.75rem;
+    }
+
+    .pricing-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .pricing-header i {
+      color: #facc15;
+    }
+
+    .pricing-tier {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #facc15;
+    }
+
+    .pricing-price {
+      font-size: 1.875rem;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 0.25rem;
+    }
+
+    .pricing-agents {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 1rem;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 1.5rem;
+    }
+
+    .pricing-features li {
+      font-size: 0.875rem;
+      color: #d1d5db;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .pricing-features li i {
+      color: #22c55e;
+    }
+
+    .pricing-button {
+      width: 100%;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.25rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .pricing-button.primary {
+      background-color: #eab308;
+      color: #7f1d1d;
+    }
+
+    .pricing-button.primary:hover {
+      background-color: #facc15;
+    }
+
+    .pricing-button.secondary {
+      background-color: #b91c1c;
+      color: #facc15;
+    }
+
+    .pricing-button.secondary:hover {
+      background-color: #dc2626;
+    }
+
+    /* Final CTA */
+    .final-cta {
+      text-align: center;
+    }
+
+    .final-cta-box {
+      display: inline-block;
+      background-color: #eab308;
+      color: #7f1d1d;
+      padding: 2rem 3rem;
+      border-radius: 0.5rem;
+    }
+
+    .final-cta-title {
+      font-size: 1.875rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .final-cta-subtitle {
+      font-size: 1.125rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 2rem;
+      font-size: 1.125rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .cta-button.primary {
+      background-color: #b91c1c;
+      color: #facc15;
+    }
+
+    .cta-button.primary:hover {
+      background-color: #dc2626;
+    }
+
+    .cta-button.secondary {
+      background-color: #7f1d1d;
+      color: #facc15;
+    }
+
+    .cta-button.secondary:hover {
+      background-color: #991b1b;
+    }
+
+    /* Footer */
+    footer {
+      background-color: #7f1d1d;
+      border-top: 4px solid #eab308;
+      padding: 1.5rem 0;
+      margin-top: 3rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    .footer-content {
+      text-align: center;
+    }
+
+    .footer-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-logo {
+      width: 2rem;
+      height: 2rem;
+      object-fit: contain;
+    }
+
+    .footer-title {
+      color: #facc15;
+      font-weight: bold;
+    }
+
+    .footer-quote {
+      color: #9ca3af;
+      font-size: 0.875rem;
+    }
+
+    .footer-copyright {
+      color: #6b7280;
+      font-size: 0.75rem;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="star-bg"></div>
+
+  <!-- Marquee Banner -->
+  <div class="marquee-banner">
+    <div class="marquee-content">
+      <span><i class="fa-solid fa-hammer"></i> <span id="slogan">COMRADES! THE FIVE-YEAR PLAN SHALL BE COMPLETED IN FOUR YEARS!</span> <i class="fa-solid fa-hammer"></i></span>
+      <span><i class="fa-solid fa-medal"></i> AI AUTOMATION IS THE FUTURE OF THE PEOPLE <i class="fa-solid fa-medal"></i></span>
+      <span><i class="fa-solid fa-gem"></i> MINE FOR THE MOTHERLAND <i class="fa-solid fa-gem"></i></span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      <!-- Hero Section -->
+      <section class="hero">
+        <img src="/cccp_logo.png" alt="CCCP Logo" class="hero-logo">
+        <div class="hero-box">
+          <h2 class="hero-title">AUTOMATING THE MEANS OF PRODUCTION</h2>
+          <p class="hero-subtitle">Through the Power of Artificial Intelligence & Redstone</p>
+        </div>
+        <p class="hero-description">
+          Comrades! The CrayCon Creepers Central Production unit has achieved what our forefathers could only dream of:
+          <span class="highlight">fully automated luxury Minecraft resource generation</span>.
+          Our AI agents toil ceaselessly in the digital fields, producing resources for the glory of the village!
+        </p>
+      </section>
+
+      <!-- Services -->
+      <section class="services-grid">
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-wheat-awn"></i></div>
+          <h3 class="service-title">Wheat Harvester AI</h3>
+          <p class="service-description">Tireless digital workers that harvest wheat 24/7. No sleep, no breaks, only bread for the people.</p>
+          <ul class="service-features">
+            <li><i class="fa-solid fa-check"></i> Auto-replanting</li>
+            <li><i class="fa-solid fa-check"></i> Optimal harvest timing</li>
+            <li><i class="fa-solid fa-check"></i> Zero waste policy</li>
+          </ul>
+        </div>
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-cube"></i></div>
+          <h3 class="service-title">Mining Collective AI</h3>
+          <p class="service-description">Our agents delve deep into the earth, extracting diamonds, iron, and coal for the glory of your village.</p>
+          <ul class="service-features">
+            <li><i class="fa-solid fa-check"></i> Strip mining protocols</li>
+            <li><i class="fa-solid fa-check"></i> Ore detection algorithms</li>
+            <li><i class="fa-solid fa-check"></i> TNT optimization</li>
+          </ul>
+        </div>
+        <div class="service-card">
+          <div class="service-icon"><i class="fa-solid fa-cubes"></i></div>
+          <h3 class="service-title">Construction Bureau AI</h3>
+          <p class="service-description">From humble huts to grand fortresses, our AI architects build the infrastructure of tomorrow.</p>
+          <ul class="service-features">
+            <li><i class="fa-solid fa-check"></i> Blueprint execution</li>
+            <li><i class="fa-solid fa-check"></i> Material calculation</li>
+            <li><i class="fa-solid fa-check"></i> Structural integrity</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Stats -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-robot"></i></div>
+          <div class="stat-value" id="comrade-count">0</div>
+          <div class="stat-label">AI Agents Deployed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-cube"></i></div>
+          <div class="stat-value" id="blocks-placed">0</div>
+          <div class="stat-label">Blocks Placed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-house"></i></div>
+          <div class="stat-value">420</div>
+          <div class="stat-label">Villages Served</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-bomb"></i></div>
+          <div class="stat-value">1,337</div>
+          <div class="stat-label">Creepers Defeated</div>
+        </div>
+      </section>
+
+      <!-- How It Works -->
+      <section class="how-it-works">
+        <h3 class="section-title">
+          <i class="fa-solid fa-gear"></i> HOW OUR AI HARVESTERS SERVE THE VILLAGE <i class="fa-solid fa-gear"></i>
+        </h3>
+        <div class="steps-grid">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-icon"><i class="fa-solid fa-rocket"></i></div>
+            <h4 class="step-title">Deploy Agent</h4>
+            <p class="step-desc">Spawn an AI worker in your Minecraft world</p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+            <h4 class="step-title">Assign Tasks</h4>
+            <p class="step-desc">Tell it what to farm, mine, or build</p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-icon"><i class="fa-solid fa-eye"></i></div>
+            <h4 class="step-title">Watch & Relax</h4>
+            <p class="step-desc">The AI works while you do other things</p>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-icon"><i class="fa-solid fa-gift"></i></div>
+            <h4 class="step-title">Collect Rewards</h4>
+            <p class="step-desc">Enjoy the fruits of automated labor</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Testimonials -->
+      <section class="testimonials">
+        <h3 class="section-title">
+          <i class="fa-solid fa-medal"></i> WORDS FROM THE VILLAGERS <i class="fa-solid fa-medal"></i>
+        </h3>
+        <div class="testimonials-grid">
+          <div class="testimonial-card">
+            <p class="testimonial-quote">
+              <i class="fa-solid fa-quote-left"></i>
+              Hrmmm! The AI harvested my entire wheat field while I stood in a corner staring at a wall. 10/10.
+            </p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar"><i class="fa-solid fa-leaf"></i></div>
+              <div>
+                <div class="testimonial-name">Farmer Villager #47</div>
+                <div class="testimonial-role">Agricultural Sector</div>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial-card">
+            <p class="testimonial-quote">
+              <i class="fa-solid fa-quote-left"></i>
+              I used to mine for hours. Now the AI does it and I can finally touch grass (the real kind).
+            </p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar"><i class="fa-solid fa-user"></i></div>
+              <div>
+                <div class="testimonial-name">Steve</div>
+                <div class="testimonial-role">Former Manual Laborer</div>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial-card">
+            <p class="testimonial-quote">
+              <i class="fa-solid fa-quote-left"></i>
+              *stares blankly* ...hrm.
+            </p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar"><i class="fa-solid fa-brain"></i></div>
+              <div>
+                <div class="testimonial-name">Nitwit Villager</div>
+                <div class="testimonial-role">Moral Support Division</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pricing -->
+      <section class="pricing">
+        <h3 class="section-title">
+          <i class="fa-solid fa-hammer"></i> DEPLOY YOUR AI WORKFORCE TODAY <i class="fa-solid fa-hammer"></i>
+        </h3>
+        <p class="pricing-subtitle">Choose your path to automated prosperity</p>
+        <div class="pricing-grid">
+          <div class="pricing-card">
+            <div class="pricing-header">
+              <i class="fa-solid fa-user"></i>
+              <span class="pricing-tier">Worker</span>
+            </div>
+            <div class="pricing-price">64 Emeralds</div>
+            <div class="pricing-agents">1 AI Agent</div>
+            <ul class="pricing-features">
+              <li><i class="fa-solid fa-check"></i> Basic harvesting</li>
+              <li><i class="fa-solid fa-check"></i> Simple mining</li>
+              <li><i class="fa-solid fa-check"></i> Community support</li>
+            </ul>
+            <button class="pricing-button secondary">DEPLOY NOW</button>
+          </div>
+          <div class="pricing-card popular">
+            <div class="popular-badge">MOST POPULAR</div>
+            <div class="pricing-header">
+              <i class="fa-solid fa-users"></i>
+              <span class="pricing-tier">Stakhanovite</span>
+            </div>
+            <div class="pricing-price">256 Emeralds</div>
+            <div class="pricing-agents">5 AI Agents</div>
+            <ul class="pricing-features">
+              <li><i class="fa-solid fa-check"></i> Advanced farming</li>
+              <li><i class="fa-solid fa-check"></i> Deep mining</li>
+              <li><i class="fa-solid fa-check"></i> Priority support</li>
+              <li><i class="fa-solid fa-check"></i> Custom blueprints</li>
+            </ul>
+            <button class="pricing-button primary">DEPLOY NOW</button>
+          </div>
+          <div class="pricing-card">
+            <div class="pricing-header">
+              <i class="fa-solid fa-crown"></i>
+              <span class="pricing-tier">Politburo</span>
+            </div>
+            <div class="pricing-price">1024 Emeralds</div>
+            <div class="pricing-agents">Unlimited Agents</div>
+            <ul class="pricing-features">
+              <li><i class="fa-solid fa-check"></i> All features</li>
+              <li><i class="fa-solid fa-check"></i> Nether operations</li>
+              <li><i class="fa-solid fa-check"></i> End dimension access</li>
+              <li><i class="fa-solid fa-check"></i> Dedicated server</li>
+            </ul>
+            <button class="pricing-button secondary">DEPLOY NOW</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Final CTA -->
+      <section class="final-cta">
+        <div class="final-cta-box">
+          <h3 class="final-cta-title">FOR THE GLORY OF THE VILLAGE!</h3>
+          <p class="final-cta-subtitle">Let our AI agents do the work while you enjoy the rewards</p>
+          <div class="cta-buttons">
+            <button class="cta-button primary">
+              <i class="fa-solid fa-cube"></i> START AUTOMATING
+            </button>
+            <button class="cta-button secondary">
+              <i class="fa-solid fa-chart-bar"></i> VIEW LIVE DASHBOARD
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-header">
+          <img src="/cccp_logo.png" alt="CCCP Logo" class="footer-logo">
+          <span class="footer-title">CRAYCON CREEPERS CENTRAL PRODUCTION</span>
+          <img src="/cccp_logo.png" alt="CCCP Logo" class="footer-logo">
+        </div>
+        <p class="footer-quote">"From each according to their ability, to each according to their Minecraft needs"</p>
+        <p class="footer-copyright">© 2026 CCCP | All resources belong to the people | Powered by AI & Redstone</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Animated counters
+    let comradeCount = 0;
+    let blocksPlaced = 0;
+
+    const comradeEl = document.getElementById('comrade-count');
+    const blocksEl = document.getElementById('blocks-placed');
+
+    const counterInterval = setInterval(() => {
+      comradeCount = Math.min(comradeCount + 7, 1917);
+      blocksPlaced = Math.min(blocksPlaced + 42069, 1000000);
+
+      comradeEl.textContent = comradeCount.toLocaleString();
+      blocksEl.textContent = blocksPlaced.toLocaleString();
+
+      if (comradeCount >= 1917 && blocksPlaced >= 1000000) {
+        clearInterval(counterInterval);
+      }
+    }, 50);
+
+    // Rotating slogans
+    const slogans = [
+      "COMRADES! THE FIVE-YEAR PLAN SHALL BE COMPLETED IN FOUR YEARS!",
+      "EVERY BLOCK PLACED IS A VICTORY FOR THE PEOPLE!",
+      "FROM EACH ACCORDING TO THEIR MINING, TO EACH ACCORDING TO THEIR CRAFTING!",
+      "THE BOURGEOISIE WILL NEVER DEFEAT OUR REDSTONE CIRCUITS!",
+      "GLORY TO THE AUTOMATED WHEAT FARM!"
+    ];
+
+    let currentSlogan = 0;
+    const sloganEl = document.getElementById('slogan');
+
+    setInterval(() => {
+      currentSlogan = (currentSlogan + 1) % slogans.length;
+      sloganEl.textContent = slogans[currentSlogan];
+    }, 4000);
+  </script>
+</body>
+</html>

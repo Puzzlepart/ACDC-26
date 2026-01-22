@@ -34,5 +34,8 @@
     "remi749",
     "jenunn"
   ],
-  "license": "WTFPL"
+  "license": "WTFPL",
+  "dependencies": {
+    "bedrock-protocol": "^3.52.0"
+  }
 }

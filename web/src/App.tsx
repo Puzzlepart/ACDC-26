@@ -1,4 +1,5 @@
 import MatrixRain from './components/MatrixRain'
+import TopNav from './components/TopNav'
 import Hero from './components/Hero'
 import About from './components/About'
 import Team from './components/Team'
@@ -12,6 +13,7 @@ function App() {
       <MatrixRain />
 
       <div className="relative z-10">
+        <TopNav />
         <Hero />
         <About />
         <Team />

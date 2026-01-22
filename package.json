@@ -37,6 +37,7 @@
   "license": "WTFPL",
   "dependencies": {
     "bedrock-protocol": "^3.52.0",
+    "mineflayer": "^4.33.0",
     "prismarine-auth": "^2.7.0",
     "ws": "^8.19.0"
   }

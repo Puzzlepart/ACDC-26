@@ -74,3 +74,4 @@ wrangler.toml.local
 
 # doc: specs, agent ramblings, plans etc.
 _doc
+**/bot-profiles/*.json

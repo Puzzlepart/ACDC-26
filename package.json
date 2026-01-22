@@ -36,6 +36,8 @@
   ],
   "license": "WTFPL",
   "dependencies": {
-    "bedrock-protocol": "^3.52.0"
+    "bedrock-protocol": "^3.52.0",
+    "prismarine-auth": "^2.7.0",
+    "ws": "^8.19.0"
   }
 }

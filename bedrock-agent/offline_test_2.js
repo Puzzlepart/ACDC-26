@@ -3,7 +3,7 @@ const bedrock = require('bedrock-protocol')
 process.env.DEBUG = 'minecraft-protocol*' // optional but useful  [oai_citation:1‡GitHub](https://github.com/PrismarineJS/bedrock-protocol)
 
 const client = bedrock.createClient({
-  host: process.env.MC_HOST,
+  host: "acdc.my-serv.com",
   port: 19132,
   username: 'ComradeBot',
   offline: true,

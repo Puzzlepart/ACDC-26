@@ -26,7 +26,10 @@ const Hero = () => {
   }, [])
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <section 
+    className="min-h-screen flex flex-col items-center px-4 relative overflow-hidden"
+    style={{ paddingTop: '10rem' }}
+    >
       {/* Pixel grid background */}
       <div className="absolute inset-0 opacity-10"
         style={{

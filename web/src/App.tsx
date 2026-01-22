@@ -1,3 +1,4 @@
+import { Routes, Route } from 'react-router-dom'
 import MatrixRain from './components/MatrixRain'
 import TopNav from './components/TopNav'
 import Hero from './components/Hero'
@@ -6,8 +7,9 @@ import Team from './components/Team'
 import Stats from './components/Stats'
 import Terminal from './components/Terminal'
 import Contact from './components/Contact'
+import CCCP from './pages/CCCP'
 
-function App() {
+function HomePage() {
   return (
     <div className="relative min-h-screen bg-terminal-bg">
       <MatrixRain />
@@ -25,6 +27,15 @@ function App() {
       {/* Scanline overlay */}
       <div className="fixed inset-0 pointer-events-none z-50 scanlines opacity-30" />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/cccp" element={<CCCP />} />
+    </Routes>
   )
 }
 

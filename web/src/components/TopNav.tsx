@@ -1,6 +1,6 @@
 const navLinks = [
   { label: '~/', href: '/', external: false },
-  { label: 'CCCP', href: 'https://cccp.craycon.no', external: true },
+  { label: 'CCCP', href: '/cccp', external: false },
   { label: 'SharePoint', href: 'https://craycon.sharepoint.com', external: true },
   { label: 'ACDC', href: 'https://arcticclouddeveloperchallenge.net', external: true },
 ]

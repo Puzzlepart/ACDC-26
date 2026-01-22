@@ -1,24 +1,24 @@
 const bedrock = require('bedrock-protocol')
+const { Titles } = require('prismarine-auth')
+
 process.env.DEBUG = 'minecraft-protocol*'
 
 const client = bedrock.createClient({
   host: 'acdc.my-serv.com',
   port: 19132,
 
-  // BOT account email (unique)
-  // username: 'cccp.comradebot@outlook.com',
   username: 'kim@damsleth.com',
-
   profilesFolder: './bot-profiles',
 
   raknetBackend: 'jsp-raknet',
   connectTimeout: 45000,
 
-  // Important for some servers 
-  authTitle: 'Minecraft',
+  // ✅ required by prismarine-auth v2+
+  flow: 'live', // 'live' | 'msal' | 'sisu'  [oai_citation:2‡Mr.Data](https://git.tpgc.me/tri11paragon/LookAtMySuitBot/src/commit/5f2b208d42ef0c40acc94aa868bddb2e1919e918/js/node_modules/prismarine-auth/docs/API.md?display=source)
 
-  // Sometimes helps compatibility (safe default)
-  deviceType: 'Win10',
+  // ✅ do full title auth (recommended for Bedrock servers)  [oai_citation:3‡Mr.Data](https://git.tpgc.me/tri11paragon/LookAtMySuitBot/src/commit/5f2b208d42ef0c40acc94aa868bddb2e1919e918/js/node_modules/prismarine-auth/docs/API.md?display=source)
+  authTitle: Titles.MinecraftNintendoSwitch,
+  deviceType: 'Nintendo',
 
   onMsaCode(data) {
     console.log('Microsoft login required:')
@@ -29,6 +29,5 @@ const client = bedrock.createClient({
 
 client.on('join', () => console.log('JOINED ✅'))
 client.on('spawn', () => console.log('SPAWNED ✅'))
-client.on('text', (p) => console.log('CHAT:', p?.message))
 client.on('disconnect', (p) => console.log('DISCONNECT:', p))
 client.on('error', (e) => console.log('ERROR:', e))

@@ -1,7 +1,25 @@
 const teamMembers = [
-  { name: 'Sindre', role: 'Team Lead', status: 'online', specialty: 'Strategy' },
-  { name: 'Øistein', role: 'Builder', status: 'online', specialty: 'Architecture' },
-  { name: 'Kim', role: 'Redstone Engineer', status: 'online', specialty: 'Automation' },
+  {
+    name: 'Sindre',
+    role: 'Team Lead',
+    status: 'online',
+    specialty: 'Strategy',
+    avatar: '/avatars/sindre.png',
+  },
+  {
+    name: 'Øistein',
+    role: 'Builder',
+    status: 'online',
+    specialty: 'Architecture',
+    avatar: '/avatars/øistein.png',
+  },
+  {
+    name: 'Kim',
+    role: 'Redstone Engineer',
+    status: 'online',
+    specialty: 'Automation',
+    avatar: '/avatars/kim.png',
+  },
 ]
 
 const Team = () => {
@@ -23,11 +41,14 @@ const Team = () => {
               className="group relative bg-terminal-bg/80 border border-creeper/30 p-6 rounded-lg hover:border-creeper transition-all duration-300 hover:shadow-neon"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              {/* Player head placeholder (pixelated avatar) */}
-              <div className="w-16 h-16 bg-creeper/20 border-2 border-creeper mb-4 flex items-center justify-center group-hover:bg-creeper/40 transition-colors">
-                <span className="font-pixel text-2xl text-creeper-light">
-                  {member.name.slice(0, 2).toUpperCase()}
-                </span>
+              {/* Player head photo */}
+              <div className="relative w-16 h-16 bg-creeper/20 border-2 border-creeper mb-4 overflow-hidden group-hover:bg-creeper/40 transition-colors">
+                <img
+                  src={member.avatar}
+                  alt={`${member.name} avatar`}
+                  className="absolute inset-0 w-full h-full object-cover object-top scale-125 origin-top"
+                  loading="lazy"
+                />
               </div>
 
               {/* Member info */}

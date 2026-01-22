@@ -32,8 +32,8 @@ const About = () => {
               </p>
 
               <p className="text-gray-300 mb-6">
-                <span className="text-neon-green">$</span> Competing in the company's Minecraft-themed
-                challenge, we bring the same precision and creativity we apply to consulting
+                <span className="text-neon-green">$</span> Competing in the Arctic Cloud Developer Challenge
+                hackathon, we bring the same precision and creativity we apply to consulting
                 to the blocky battlefields.
               </p>
 

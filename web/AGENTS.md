@@ -36,7 +36,7 @@ Fusion of:
 - Tech-focused consulting firm
 
 ### Competition Theme
-- Minecraft-themed company event
+- Minecraft-themed hackathon
 - "Arctic Cloud Developer Challenge"
 - Mainly Microsoft Stack focus at event, but team is multi-tech/full-stack
 - Computer/hacking culture references encouraged

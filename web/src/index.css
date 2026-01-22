@@ -35,6 +35,7 @@ html {
 }
 
 body {
+  zoom: 150%;
   margin: 0;
   background-color: var(--terminal-bg);
   color: #ffffff;

@@ -66,8 +66,6 @@ const Hero = () => {
       <p className="font-mono text-gray-400 text-center max-w-xl mb-12 leading-relaxed">
         <span className="text-diamond">&gt;</span> Elite Minecraft operatives from{' '}
         <span className="text-creeper-light">Crayon Consulting</span>
-        <br />
-        <span className="text-diamond">&gt;</span> Ready to <span className="text-neon-green">explode</span> the competition
       </p>
 
       {/* Scroll indicator */}

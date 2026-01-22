@@ -1,29 +1,10 @@
 import { useState, useEffect } from 'react'
 
 const CCCP = () => {
-  const [quotaProgress, setQuotaProgress] = useState({
-    wheat: 0,
-    potatoes: 0,
-    beets: 0
-  })
-
-  const [factoryStatus, setFactoryStatus] = useState([
-    { name: 'Factory A - Line 1', product: 'Bread Production', progress: 0, target: 83 },
-    { name: 'Factory B - Line 2', product: 'Potato Processing', progress: 0, target: 67 },
-    { name: 'Bakery - Line 3', product: 'Pastry Production', progress: 0, target: 92 }
-  ])
-
   const [comradeCount, setComradeCount] = useState(0)
   const [blocksPlaced, setBlocksPlaced] = useState(0)
 
   useEffect(() => {
-    // Animate quota progress
-    const timer = setTimeout(() => {
-      setQuotaProgress({ wheat: 82, potatoes: 73, beets: 45 })
-      setFactoryStatus(prev => prev.map(f => ({ ...f, progress: f.target })))
-    }, 500)
-
-    // Animate counters
     const counterInterval = setInterval(() => {
       setComradeCount(prev => Math.min(prev + 7, 1917))
       setBlocksPlaced(prev => Math.min(prev + 42069, 1_000_000))
@@ -31,10 +12,7 @@ const CCCP = () => {
 
     setTimeout(() => clearInterval(counterInterval), 2000)
 
-    return () => {
-      clearTimeout(timer)
-      clearInterval(counterInterval)
-    }
+    return () => clearInterval(counterInterval)
   }, [])
 
   const slogans = [
@@ -90,7 +68,7 @@ const CCCP = () => {
         {/* Hero Section */}
         <div className="text-center mb-12">
           <div className="inline-block mb-6">
-            <img src="/cccp_logo.png" alt="CCCP Logo" className="w-32 h-32 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,0,0,0.5)]" />
+            <img src="/cccp_logo.png" alt="CCCP Logo" className="w-40 h-40 mx-auto mb-4 drop-shadow-[0_0_20px_rgba(255,0,0,0.6)]" />
           </div>
           <div className="inline-block bg-red-800 border-4 border-yellow-500 px-8 py-6 mb-6">
             <h2 className="text-3xl md:text-5xl font-bold text-yellow-400 mb-2" style={{ fontFamily: 'serif' }}>
@@ -102,44 +80,43 @@ const CCCP = () => {
           <p className="text-gray-300 max-w-3xl mx-auto text-lg leading-relaxed">
             Comrades! The CrayCon Creepers Central Production unit has achieved what our forefathers could only dream of:
             <span className="text-yellow-400 font-bold"> fully automated luxury Minecraft resource generation</span>.
-            Our AI agents toil ceaselessly in the digital fields, producing resources for the glory of the people!
+            Our AI agents toil ceaselessly in the digital fields, producing resources for the glory of the village!
           </p>
         </div>
 
-        {/* Quota Dashboard */}
+        {/* AI Harvester Services */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           {[
-            { name: 'Wheat Quota', current: 2450, target: 3000, progress: quotaProgress.wheat, emoji: '🌾', color: 'yellow' },
-            { name: 'Potatoes Quota', current: 1820, target: 2500, progress: quotaProgress.potatoes, emoji: '🥔', color: 'orange' },
-            { name: 'Beets Quota', current: 890, target: 2000, progress: quotaProgress.beets, emoji: '🥬', color: 'red' }
-          ].map((quota, i) => (
-            <div key={i} className="bg-white/10 backdrop-blur border-2 border-yellow-500/50 rounded-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-2xl">{quota.emoji}</span>
-                <h3 className="text-lg font-bold text-yellow-400">{quota.name}</h3>
-              </div>
-              <div className="text-4xl font-bold mb-2">
-                <span className={quota.progress >= 70 ? 'text-green-400' : quota.progress >= 50 ? 'text-yellow-400' : 'text-red-400'}>
-                  {quota.current.toLocaleString()}
-                </span>
-                <span className="text-gray-400 text-xl"> / {quota.target.toLocaleString()}</span>
-              </div>
-              <div className="h-4 bg-gray-700 rounded-full overflow-hidden mb-2">
-                <div
-                  className={`h-full transition-all duration-1000 ${
-                    quota.progress >= 70 ? 'bg-green-500' : quota.progress >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${quota.progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className={`px-2 py-1 rounded ${
-                  quota.progress >= 70 ? 'bg-green-600' : quota.progress >= 50 ? 'bg-yellow-600' : 'bg-red-600'
-                }`}>
-                  {quota.progress}%
-                </span>
-                <span className="text-gray-400">Output: +{10 + i * 2} / min</span>
-              </div>
+            {
+              icon: '🌾',
+              title: 'Wheat Harvester AI',
+              description: 'Tireless digital workers that harvest wheat 24/7. No sleep, no breaks, only bread for the people.',
+              features: ['Auto-replanting', 'Optimal harvest timing', 'Zero waste policy']
+            },
+            {
+              icon: '⛏️',
+              title: 'Mining Collective AI',
+              description: 'Our agents delve deep into the earth, extracting diamonds, iron, and coal for the glory of your village.',
+              features: ['Strip mining protocols', 'Ore detection algorithms', 'TNT optimization']
+            },
+            {
+              icon: '🏗️',
+              title: 'Construction Bureau AI',
+              description: 'From humble huts to grand fortresses, our AI architects build the infrastructure of tomorrow.',
+              features: ['Blueprint execution', 'Material calculation', 'Structural integrity']
+            }
+          ].map((service, i) => (
+            <div key={i} className="bg-gradient-to-b from-red-900/50 to-red-950/50 border-2 border-yellow-500/50 rounded-lg p-6 hover:border-yellow-400 transition-all hover:scale-105">
+              <div className="text-5xl mb-4 text-center">{service.icon}</div>
+              <h3 className="text-xl font-bold text-yellow-400 mb-3 text-center">{service.title}</h3>
+              <p className="text-gray-300 text-sm mb-4">{service.description}</p>
+              <ul className="space-y-2">
+                {service.features.map((feature, j) => (
+                  <li key={j} className="text-sm text-gray-400 flex items-center gap-2">
+                    <span className="text-green-500">✓</span> {feature}
+                  </li>
+                ))}
+              </ul>
             </div>
           ))}
         </div>
@@ -147,10 +124,10 @@ const CCCP = () => {
         {/* Statistics */}
         <div className="grid md:grid-cols-4 gap-4 mb-12">
           {[
-            { label: 'Comrade AI Agents', value: comradeCount.toLocaleString(), icon: '🤖' },
+            { label: 'AI Agents Deployed', value: comradeCount.toLocaleString(), icon: '🤖' },
             { label: 'Blocks Placed', value: blocksPlaced.toLocaleString(), icon: '⛏️' },
-            { label: 'Redstone Circuits', value: '420', icon: '⚡' },
-            { label: 'Hours Without Incident', value: '69', icon: '🎖️' }
+            { label: 'Villages Served', value: '420', icon: '🏘️' },
+            { label: 'Creepers Defeated', value: '1,337', icon: '💥' }
           ].map((stat, i) => (
             <div key={i} className="bg-red-900/50 border border-yellow-500/30 rounded p-4 text-center">
               <div className="text-3xl mb-2">{stat.icon}</div>
@@ -160,128 +137,100 @@ const CCCP = () => {
           ))}
         </div>
 
-        {/* Factory Status */}
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
-          <div className="bg-white/5 border border-yellow-500/30 rounded-lg p-6">
-            <h3 className="text-xl font-bold text-yellow-400 mb-6 border-b border-yellow-500/30 pb-2">
-              ⚙️ Production Lines
-            </h3>
-            <div className="space-y-6">
-              {factoryStatus.map((factory, i) => (
-                <div key={i}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                      i === 0 ? 'bg-blue-600' : i === 1 ? 'bg-green-600' : 'bg-orange-600'
-                    }`}>
-                      {['FA', 'FB', 'BA'][i]}
-                    </div>
-                    <div>
-                      <div className="font-bold">{factory.name}</div>
-                      <div className="text-sm text-gray-400">{factory.product}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 h-3 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-1000 ${
-                          factory.progress >= 80 ? 'bg-green-500' : factory.progress >= 60 ? 'bg-yellow-500' : 'bg-blue-500'
-                        }`}
-                        style={{ width: `${factory.progress}%` }}
-                      />
-                    </div>
-                    <span className="text-sm w-12 text-right">{factory.progress}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white/5 border border-yellow-500/30 rounded-lg p-6">
-            <h3 className="text-xl font-bold text-yellow-400 mb-6 border-b border-yellow-500/30 pb-2">
-              📋 Order Queue
-            </h3>
-            <div className="space-y-4">
-              {[
-                { name: 'Factory A', qty: 500, eta: '2h 15m', icon: '🏭' },
-                { name: 'Factory B', qty: 320, eta: '1h 45m', icon: '🏭' },
-                { name: 'Bakery', qty: 180, eta: '3h 00m', icon: '🍞' }
-              ].map((order, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 bg-white/5 rounded">
-                  <span className="text-2xl">{order.icon}</span>
-                  <div className="flex-1">
-                    <div className="font-bold">{order.name}</div>
-                    <div className="text-sm text-gray-400">Quantity: {order.qty} units • ETA: {order.eta}</div>
-                  </div>
-                </div>
-              ))}
-              <button className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-red-900 font-bold rounded transition">
-                Approve New Order
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* AI Manifesto */}
-        <div className="bg-gradient-to-r from-red-900/50 to-red-800/50 border-2 border-yellow-500 rounded-lg p-8 mb-12">
-          <h3 className="text-2xl font-bold text-yellow-400 mb-4 text-center" style={{ fontFamily: 'serif' }}>
-            ⚒️ THE AI AUTOMATION MANIFESTO ⚒️
+        {/* How It Works */}
+        <div className="bg-white/5 border border-yellow-500/30 rounded-lg p-8 mb-12">
+          <h3 className="text-2xl font-bold text-yellow-400 mb-6 text-center" style={{ fontFamily: 'serif' }}>
+            ⚙️ HOW OUR AI HARVESTERS SERVE THE VILLAGE ⚙️
           </h3>
-          <div className="grid md:grid-cols-2 gap-6 text-gray-300">
-            <div>
-              <h4 className="font-bold text-yellow-400 mb-2">Our Mission:</h4>
-              <ul className="space-y-2">
-                <li>✓ Deploy AI agents to automate repetitive Minecraft tasks</li>
-                <li>✓ Build self-sustaining farms that produce resources 24/7</li>
-                <li>✓ Implement smart redstone circuits for optimal efficiency</li>
-                <li>✓ Unite all Minecraft players under the banner of automation</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-yellow-400 mb-2">The Revolution:</h4>
-              <ul className="space-y-2">
-                <li>🔴 Phase 1: Automate wheat farms (COMPLETE)</li>
-                <li>🔴 Phase 2: Deploy potato processing AI (IN PROGRESS)</li>
-                <li>⚪ Phase 3: Achieve full beet production</li>
-                <li>⚪ Phase 4: Expand to Nether resources</li>
-              </ul>
-            </div>
+          <div className="grid md:grid-cols-4 gap-6">
+            {[
+              { step: '1', title: 'Deploy Agent', desc: 'Spawn an AI worker in your Minecraft world', icon: '🚀' },
+              { step: '2', title: 'Assign Tasks', desc: 'Tell it what to farm, mine, or build', icon: '📋' },
+              { step: '3', title: 'Watch & Relax', desc: 'The AI works while you do other things', icon: '👀' },
+              { step: '4', title: 'Collect Rewards', desc: 'Enjoy the fruits of automated labor', icon: '🎁' }
+            ].map((item, i) => (
+              <div key={i} className="text-center">
+                <div className="w-16 h-16 mx-auto mb-3 bg-yellow-500 text-red-900 rounded-full flex items-center justify-center text-2xl font-bold">
+                  {item.step}
+                </div>
+                <div className="text-3xl mb-2">{item.icon}</div>
+                <h4 className="font-bold text-yellow-400 mb-1">{item.title}</h4>
+                <p className="text-sm text-gray-400">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Alerts Section */}
-        <div className="bg-orange-900/30 border-l-4 border-orange-500 rounded-r-lg p-6 mb-12">
-          <h3 className="text-xl font-bold text-orange-400 mb-4">⚠️ Alerts</h3>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded">HIGH</span>
-              <div>
-                <div className="font-bold">Beet Field Low Production</div>
-                <div className="text-sm text-gray-400">Comrades, the beet quota is falling behind! Deploy additional AI workers immediately!</div>
+        {/* Testimonials */}
+        <div className="mb-12">
+          <h3 className="text-2xl font-bold text-yellow-400 mb-6 text-center" style={{ fontFamily: 'serif' }}>
+            🎖️ WORDS FROM THE VILLAGERS 🎖️
+          </h3>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { name: 'Farmer Villager #47', quote: 'Hrmmm! The AI harvested my entire wheat field while I stood in a corner staring at a wall. 10/10.', role: 'Agricultural Sector' },
+              { name: 'Steve', quote: 'I used to mine for hours. Now the AI does it and I can finally touch grass (the real kind).', role: 'Former Manual Laborer' },
+              { name: 'Nitwit Villager', quote: '*stares blankly* ...hrm.', role: 'Moral Support Division' }
+            ].map((testimonial, i) => (
+              <div key={i} className="bg-red-900/30 border border-yellow-500/20 rounded-lg p-6">
+                <p className="text-gray-300 italic mb-4">"{testimonial.quote}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center text-lg">
+                    {['👨‍🌾', '🧑', '🤪'][i]}
+                  </div>
+                  <div>
+                    <div className="font-bold text-yellow-400">{testimonial.name}</div>
+                    <div className="text-xs text-gray-500">{testimonial.role}</div>
+                  </div>
+                </div>
               </div>
-              <span className="text-sm text-gray-500">5 min ago</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="px-2 py-1 bg-yellow-600 text-white text-xs font-bold rounded">MED</span>
-              <div>
-                <div className="font-bold">Creeper Detected in Sector 7</div>
-                <div className="text-sm text-gray-400">Security AI has neutralized the threat. No casualties among our workers.</div>
-              </div>
-              <span className="text-sm text-gray-500">23 min ago</span>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Call to Action */}
+        {/* Pricing/CTA */}
+        <div className="bg-gradient-to-r from-red-900/50 to-red-800/50 border-2 border-yellow-500 rounded-lg p-8 mb-12">
+          <h3 className="text-2xl font-bold text-yellow-400 mb-2 text-center" style={{ fontFamily: 'serif' }}>
+            ⚒️ DEPLOY YOUR AI WORKFORCE TODAY ⚒️
+          </h3>
+          <p className="text-center text-gray-400 mb-6">Choose your path to automated prosperity</p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { tier: 'Worker', price: '64 Emeralds', agents: '1 AI Agent', features: ['Basic harvesting', 'Simple mining', 'Community support'] },
+              { tier: 'Stakhanovite', price: '256 Emeralds', agents: '5 AI Agents', features: ['Advanced farming', 'Deep mining', 'Priority support', 'Custom blueprints'], popular: true },
+              { tier: 'Politburo', price: '1024 Emeralds', agents: 'Unlimited Agents', features: ['All features', 'Nether operations', 'End dimension access', 'Dedicated server'] }
+            ].map((plan, i) => (
+              <div key={i} className={`bg-black/30 rounded-lg p-6 ${plan.popular ? 'border-2 border-yellow-400 scale-105' : 'border border-yellow-500/30'}`}>
+                {plan.popular && <div className="text-center text-xs font-bold text-red-900 bg-yellow-400 rounded-full px-3 py-1 mb-3 inline-block">MOST POPULAR</div>}
+                <h4 className="text-xl font-bold text-yellow-400 mb-1">{plan.tier}</h4>
+                <div className="text-3xl font-bold text-white mb-1">{plan.price}</div>
+                <div className="text-sm text-gray-500 mb-4">{plan.agents}</div>
+                <ul className="space-y-2 mb-6">
+                  {plan.features.map((f, j) => (
+                    <li key={j} className="text-sm text-gray-300 flex items-center gap-2">
+                      <span className="text-green-500">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <button type="button" className={`w-full py-2 rounded font-bold transition ${plan.popular ? 'bg-yellow-500 text-red-900 hover:bg-yellow-400' : 'bg-red-700 text-yellow-400 hover:bg-red-600'}`}>
+                  DEPLOY NOW
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Final CTA */}
         <div className="text-center">
-          <div className="inline-block bg-yellow-500 text-red-900 px-12 py-6 rounded-lg">
-            <h3 className="text-2xl font-bold mb-2">JOIN THE PRODUCTION TODAY!</h3>
-            <p className="mb-4">Together we shall automate the means of production!</p>
-            <div className="flex gap-4 justify-center">
-              <button className="px-6 py-2 bg-red-700 text-yellow-400 font-bold rounded hover:bg-red-600 transition">
-                ⚒️ SIGN UP COMRADE
+          <div className="inline-block bg-yellow-500 text-red-900 px-12 py-8 rounded-lg">
+            <h3 className="text-3xl font-bold mb-2">FOR THE GLORY OF THE VILLAGE!</h3>
+            <p className="mb-6 text-lg">Let our AI agents do the work while you enjoy the rewards</p>
+            <div className="flex gap-4 justify-center flex-wrap">
+              <button type="button" className="px-8 py-3 bg-red-700 text-yellow-400 font-bold rounded-lg hover:bg-red-600 transition text-lg">
+                ⛏️ START AUTOMATING
               </button>
-              <button className="px-6 py-2 bg-red-900 text-yellow-400 font-bold rounded hover:bg-red-800 transition">
-                📖 READ MANIFESTO
+              <button type="button" className="px-8 py-3 bg-red-900 text-yellow-400 font-bold rounded-lg hover:bg-red-800 transition text-lg">
+                📊 VIEW LIVE DASHBOARD
               </button>
             </div>
           </div>

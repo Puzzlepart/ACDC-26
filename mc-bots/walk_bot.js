@@ -5,9 +5,7 @@ const comradeName = `comrade_${randomNum}`;
 
 const bot = mineflayer.createBot({
   host: 'shell.craycon.no',
-  username: comradeName,
-  auth: 'offline',
-  version: '1.21.8'
+  username: comradeName
 })
 
 // bot that walks around

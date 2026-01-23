@@ -55,7 +55,7 @@ const CONFIG = {
     autoAssign: process.env.AUTO_ASSIGN_JOBS ? process.env.AUTO_ASSIGN_JOBS === 'true' : true,
     defaultJob: process.env.DEFAULT_JOB || '',
     assignments: parseJobAssignments(process.env.BOT_JOBS || ''),
-    priority: ['farmer-wheat', 'farmer-potatoes', 'farmer-beets', 'farmer', 'guard', 'scout'],
+    priority: ['brigadier', 'farmer-wheat', 'farmer-potatoes', 'farmer-beets', 'farmer', 'guard', 'scout'],
     farmer: {
       crop: process.env.FARMER_CROP || 'wheat',
       radius: Number(process.env.FARMER_RADIUS || 6),

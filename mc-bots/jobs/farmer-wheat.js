@@ -30,20 +30,24 @@ function notifyHarvest(bot, amount) {
   // })
 }
 
-async function giveStarterKit(bot) {
-  console.log(`[farmer-wheat] Giving starter kit to ${bot.username}`)
+async function checkStarterKit(bot) {
+  console.log(`[farmer-wheat] Checking inventory for ${bot.username}`)
   
-  // Give equipment via cheat commands
-  bot.chat('/give @s minecraft:diamond_hoe 1')
-  await sleep(200)
-  bot.chat('/give @s minecraft:diamond_shovel 1')
-  await sleep(200)
-  bot.chat('/give @s minecraft:wheat_seeds 64')
-  await sleep(200)
-  bot.chat('/give @s minecraft:dirt 64')
-  await sleep(200)
+  // Check if bot has required items (seeds at minimum)
+  const seeds = bot.inventory.items().find(item => item.name === CROP.seed)
   
-  bot.chat('Wheat farmer ready!')
+  if (seeds) {
+    console.log(`[farmer-wheat] ${bot.username} has ${seeds.count} ${CROP.seed}`)
+    bot.chat('Wheat farmer ready!')
+  } else {
+    console.log(`[farmer-wheat] WARNING: ${bot.username} has no seeds! Requesting from brigadier...`)
+    bot.chat('Wheat farmer ready (need wheat seeds!)')
+    await sleep(1000)
+    bot.chat('Need wheat seeds for the collective!')
+  }
+  
+  // Note: Brigadier bot will auto-supply if present
+  // Or manually: /give <bot_name> minecraft:wheat_seeds 64
 }
 
 function findRipeCrop(bot, radius) {
@@ -85,9 +89,9 @@ async function run(state, task, options) {
       continue
     }
     
-    // Give kit once when bot spawns
+    // Check kit once when bot spawns
     if (!kitGiven) {
-      await giveStarterKit(bot)
+      await checkStarterKit(bot)
       kitGiven = true
     }
 

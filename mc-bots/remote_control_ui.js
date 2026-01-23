@@ -10,6 +10,7 @@ const toggleControlsEl = document.getElementById('toggle-controls')
 const toggleViewerControlEl = document.getElementById('toggle-viewer-control')
 const lookSensitivityEl = document.getElementById('look-sensitivity')
 const jobSelectEl = document.getElementById('job-select')
+const jobBotSelectEl = document.getElementById('job-bot-select')
 const jobOptionsEl = document.getElementById('job-options')
 const jobStartEl = document.getElementById('job-start')
 const jobStopEl = document.getElementById('job-stop')
@@ -82,6 +83,11 @@ if (document.getElementById('spawn-name')) {
   document.getElementById('spawn-name').placeholder = suggestComradeName()
 }
 
+// Auto-populate auth token with default if not set
+if (tokenInputEl && !tokenInputEl.value) {
+  tokenInputEl.value = 'YOLO_SWAG'
+}
+
 function logStatus(text) {
   statusEl.textContent = text
 }
@@ -99,26 +105,39 @@ function send(type, args = {}, options = {}) {
 function updateBotSelect(bots) {
   botsCache = bots || []
   botSelectEl.innerHTML = ''
+  jobBotSelectEl.innerHTML = ''
+  
   if (!botsCache || botsCache.length === 0) {
     const option = document.createElement('option')
     option.value = ''
     option.textContent = 'No bots'
     botSelectEl.appendChild(option)
+    jobBotSelectEl.appendChild(option.cloneNode(true))
     selectedBotId = ''
     botStatusEl.textContent = 'No bots connected'
     return
   }
+  
   botsCache.forEach(bot => {
     const option = document.createElement('option')
     option.value = bot.id
     const jobLabel = bot.job ? ` • ${bot.job}` : ''
     option.textContent = `${bot.name} (${bot.inGame ? 'online' : 'offline'})${jobLabel}`
     botSelectEl.appendChild(option)
+    jobBotSelectEl.appendChild(option.cloneNode(true))
   })
+  
   if (!selectedBotId || !botsCache.find(bot => bot.id === selectedBotId)) {
     selectedBotId = botsCache[0].id
-    botSelectEl.value = selectedBotId
   }
+  
+  botSelectEl.value = selectedBotId
+  
+  // Default job bot selector to last spawned bot
+  if (botsCache.length > 0) {
+    jobBotSelectEl.value = botsCache[botsCache.length - 1].id
+  }
+  
   const active = botsCache.find(bot => bot.id === selectedBotId)
   botStatusEl.textContent = active ? `Active: ${active.name}` : 'Select a bot'
   if (active && active.viewerPort) {
@@ -322,6 +341,11 @@ document.getElementById('stop').addEventListener('click', () => {
 jobStartEl.addEventListener('click', () => {
   const job = jobSelectEl.value
   if (!job) return
+  const botId = jobBotSelectEl.value
+  if (!botId) {
+    logStatus('Error: select a bot first')
+    return
+  }
   let options = {}
   const raw = jobOptionsEl.value.trim()
   if (raw) {
@@ -332,11 +356,16 @@ jobStartEl.addEventListener('click', () => {
       return
     }
   }
-  send('job', { action: 'start', job, options })
+  send('job', { action: 'start', job, options, botId }, { includeBotId: false })
 })
 
 jobStopEl.addEventListener('click', () => {
-  send('job', { action: 'stop' })
+  const botId = jobBotSelectEl.value
+  if (!botId) {
+    logStatus('Error: select a bot first')
+    return
+  }
+  send('job', { action: 'stop', botId }, { includeBotId: false })
 })
 
 mindcraftConnectEl.addEventListener('click', () => {

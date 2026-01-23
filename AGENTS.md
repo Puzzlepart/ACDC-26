@@ -418,7 +418,7 @@ These are simpler, single-purpose scripts for specific tasks.
 **Badge data files:**
 - [skills/acdc-badge-sniper/data/team_profile.json](skills/acdc-badge-sniper/data/team_profile.json) - team metadata
 - [skills/acdc-badge-sniper/data/badges_acquired.json](skills/acdc-badge-sniper/data/badges_acquired.json) - claimed badges
-- [skills/acdc-badge-sniper/data/blob/](skills/acdc-badge-sniper/data/blob/) - cached badge definitions from ACDC API
+- [skills/acdc-badge-sniper/data/](skills/acdc-badge-sniper/data/) - cached badge definitions from ACDC API
 
 Skill auto-syncs badge data from base URL `https://stacdc2026.blob.core.windows.net/acdc/`:
 - `metadata.json`

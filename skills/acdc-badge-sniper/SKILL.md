@@ -36,7 +36,7 @@ Ask for missing inputs before producing a plan:
 ## Onboarding flow (team selection)
 
 When the user has not specified a team name yet:
-1. Load `data/blob/teams.json` and present the full list of team names.
+1. Load `data/teams.json` and present the full list of team names.
 2. Ask the user to confirm the team name to avoid typos.
 3. Ask whether to save the selection to `data/team_profile.json`.
 4. If the user declines saving, keep the team name in the current response context only.
@@ -52,10 +52,10 @@ ACDC_BASE_URL = https://stacdc2026.blob.core.windows.net/acdc/
 ## Required data sync (hackathon mode)
 
 At the start of each run, fetch the latest data from the base URL above and save into the matching cache files:
-- `{ACDC_BASE_URL}metadata.json` → `data/blob/metadata.json`
-- `{ACDC_BASE_URL}claims.json` → `data/blob/claims.json`
-- `{ACDC_BASE_URL}teams.json` → `data/blob/teams.json`
-- `{ACDC_BASE_URL}rankings.json` → `data/blob/rankings.json`
+- `{ACDC_BASE_URL}metadata.json` → `data/metadata.json`
+- `{ACDC_BASE_URL}claims.json` → `data/claims.json`
+- `{ACDC_BASE_URL}teams.json` → `data/teams.json`
+- `{ACDC_BASE_URL}rankings.json` → `data/rankings.json`
 
 If live fetch fails, ask whether to proceed with the cached copies. If requirements are ambiguous, quote the exact wording (short quotes) and explain a safe interpretation.
 
@@ -73,7 +73,7 @@ Key fields to use:
 Track team identity and claimed badges using these files:
 - `data/team_profile.json` for team metadata (name, members, stack, constraints, notes).
 - `data/badges_acquired.json` for badges already claimed.
-- `data/blob/teams.json` for the official team list (name lookup/validation).
+- `data/teams.json` for the official team list (name lookup/validation).
 
 If the files are missing, ask the user for the minimal fields and create them on request. Only update these files when the user explicitly asks to save changes.
 `badges_acquired.json` can be regenerated from rankings/metadata at any time.
@@ -82,7 +82,7 @@ Suggested shapes:
 - team_profile.json: `{ "team_id": "<string>", "team_name": "<string>", "members": ["<string>"], "stack": ["<string>"], "constraints": ["<string>"], "notes": "<string>" }`
 - badges_acquired.json: `{ "team_id": "<string>", "badge_ids": [<number>], "badge_titles": ["<string>"], "updated_at": "<iso8601>" }`
 
-When `data/blob/teams.json` exists, use it to validate or suggest the team name and avoid typos.
+When `data/teams.json` exists, use it to validate or suggest the team name and avoid typos.
 
 ## Scoring and ranking
 

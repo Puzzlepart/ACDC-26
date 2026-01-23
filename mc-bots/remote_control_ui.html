@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Remote Control Bot</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 16px; background: #0f1115; color: #e6e6e6; }
+    h1 { font-size: 20px; margin-bottom: 12px; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .card { background: #171b23; padding: 12px; border-radius: 10px; border: 1px solid #2a2f3b; }
+    label { display: block; font-size: 12px; margin-bottom: 4px; color: #aab0c0; }
+    input, button { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #2a2f3b; background: #0f1115; color: #e6e6e6; }
+    button { cursor: pointer; background: #2f6b3b; border-color: #2f6b3b; }
+    button.secondary { background: #2a2f3b; border-color: #2a2f3b; }
+    .row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+    pre { background: #0b0d11; padding: 8px; border-radius: 6px; height: 140px; overflow: auto; }
+    iframe { width: 100%; height: 360px; border: 0; border-radius: 10px; background: #0b0d11; }
+  </style>
+</head>
+<body>
+  <h1>Remote Control Bot</h1>
+
+  <div class="grid">
+    <div class="card">
+      <label>Auth Token (optional for localhost)</label>
+      <input id="token" placeholder="BOT_AUTH_TOKEN" />
+      <button id="connect">Connect</button>
+      <button id="disconnect" class="secondary">Disconnect</button>
+      <p id="status">Disconnected</p>
+    </div>
+
+    <div class="card">
+      <h3>Move To</h3>
+      <div class="row">
+        <div><label>X</label><input id="move-x" value="0" /></div>
+        <div><label>Y</label><input id="move-y" value="0" /></div>
+        <div><label>Z</label><input id="move-z" value="0" /></div>
+      </div>
+      <button id="move">Move</button>
+    </div>
+
+    <div class="card">
+      <h3>Follow Player</h3>
+      <label>Player Name</label>
+      <input id="follow-name" placeholder="Player name" />
+      <label>Distance</label>
+      <input id="follow-distance" value="3" />
+      <button id="follow">Follow</button>
+      <button id="stop" class="secondary">Stop</button>
+    </div>
+
+    <div class="card">
+      <h3>Telemetry</h3>
+      <pre id="telemetry">Waiting...</pre>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 12px;">
+    <h3>Viewer</h3>
+    <iframe id="viewer" title="Prismarine Viewer"></iframe>
+  </div>
+
+  <script>
+    let ws
+    let lastCommandId = 0
+
+    const statusEl = document.getElementById('status')
+    const telemetryEl = document.getElementById('telemetry')
+    const viewerEl = document.getElementById('viewer')
+
+    function logStatus(text) {
+      statusEl.textContent = text
+    }
+
+    function send(type, args = {}) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return
+      lastCommandId += 1
+      ws.send(JSON.stringify({ type, id: `cmd-${lastCommandId}`, args }))
+    }
+
+    document.getElementById('connect').addEventListener('click', () => {
+      const token = document.getElementById('token').value.trim()
+      const url = new URL(window.location.href)
+      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+      url.searchParams.set('token', token)
+
+      ws = new WebSocket(url.toString())
+
+      ws.addEventListener('open', () => logStatus('Connected'))
+      ws.addEventListener('close', () => logStatus('Disconnected'))
+      ws.addEventListener('message', event => {
+        const data = JSON.parse(event.data)
+        if (data.type === 'telemetry') {
+          telemetryEl.textContent = JSON.stringify(data.payload, null, 2)
+        }
+        if (data.type === 'hello') {
+          const { viewerPort } = data.payload
+          viewerEl.src = `http://${location.hostname}:${viewerPort}`
+        }
+        if (data.type === 'error') {
+          logStatus(`Error: ${data.message || 'unknown'}`)
+        }
+      })
+    })
+
+    document.getElementById('disconnect').addEventListener('click', () => {
+      if (ws) ws.close()
+    })
+
+    document.getElementById('move').addEventListener('click', () => {
+      const x = Number(document.getElementById('move-x').value)
+      const y = Number(document.getElementById('move-y').value)
+      const z = Number(document.getElementById('move-z').value)
+      send('move', { x, y, z })
+    })
+
+    document.getElementById('follow').addEventListener('click', () => {
+      const playerName = document.getElementById('follow-name').value.trim()
+      const distance = Number(document.getElementById('follow-distance').value)
+      send('follow', { playerName, distance })
+    })
+
+    document.getElementById('stop').addEventListener('click', () => {
+      send('stop')
+    })
+  </script>
+</body>
+</html>

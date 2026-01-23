@@ -269,8 +269,16 @@
       const active = botsCache.find(bot => bot.id === selectedBotId)
       botStatusEl.textContent = active ? `Active: ${active.name}` : 'Select a bot'
       if (active && active.viewerPort) {
-        viewerEl.src = `http://${viewerHost}:${active.viewerPort}`
+        setViewerSrc(active.viewerPort)
       }
+    }
+
+    function setViewerSrc(viewerPort) {
+      if (!viewerPort) return
+      const next = `http://${viewerHost}:${viewerPort}`
+      if (viewerEl.dataset.src === next) return
+      viewerEl.dataset.src = next
+      viewerEl.src = next
     }
 
     function updateJobSelect(jobs) {
@@ -420,7 +428,7 @@
       selectedBotId = event.target.value
       const active = botsCache.find(bot => bot.id === selectedBotId)
       if (active && active.viewerPort) {
-        viewerEl.src = `http://${viewerHost}:${active.viewerPort}`
+        setViewerSrc(active.viewerPort)
         botStatusEl.textContent = `Active: ${active.name}`
       }
       send('status')

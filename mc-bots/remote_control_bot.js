@@ -575,11 +575,13 @@ wss.on('connection', (ws, req) => {
 
     if (type === 'stop') {
       const targets = args.botId ? [getState(args.botId)] : Array.from(bots.values())
+      let didChange = false
       for (const state of targets) {
-        stopJob(state)
+        if (state.jobName) didChange = true
+        stopJob(state, { broadcast: false })
         stopMotion(state)
       }
-      broadcastBotList()
+      if (didChange) broadcastBotList()
       send(ws, { type: 'done', id })
       return
     }

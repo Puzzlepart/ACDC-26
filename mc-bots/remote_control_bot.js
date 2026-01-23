@@ -7,24 +7,22 @@ const mineflayerViewer = require('prismarine-viewer').mineflayer
 const { Vec3 } = require('vec3')
 
 const CONFIG = {
-  host: 'mc.craycon.no',
-  port: 25565,
+  host: process.env.MC_HOST || 'mc.craycon.no',
+  port: Number(process.env.MC_PORT || 25565),
   username: process.env.MC_USERNAME || 'comrade_remote',
   viewerPort: Number(process.env.VIEWER_PORT || 3000),
   controlPort: Number(process.env.CONTROL_PORT || 4000),
-  authToken: process.env.BOT_AUTH_TOKEN || ''
+  authToken: process.env.BOT_AUTH_TOKEN || '',
+  lookSensitivity: Number(process.env.LOOK_SENSITIVITY || 0.0025)
 }
 
 const UI_PATH = path.join(__dirname, 'remote_control_ui.html')
 const UI_HTML = fs.existsSync(UI_PATH) ? fs.readFileSync(UI_PATH, 'utf8') : null
 
-const bot = mineflayer.createBot({
-  username: CONFIG.username,
-  host: CONFIG.host,
-  port: CONFIG.port
-})
+const bots = new Map()
+let nextViewerPort = CONFIG.viewerPort
+let defaultBotId = null
 
-let activeTask = null
 let telemetryTimer = null
 
 const server = http.createServer((req, res) => {
@@ -58,94 +56,95 @@ function broadcast(payload) {
   }
 }
 
-function stopMotion() {
-  if (!bot || !bot.entity) return
-  bot.setControlState('forward', false)
-  bot.setControlState('back', false)
-  bot.setControlState('left', false)
-  bot.setControlState('right', false)
-  bot.setControlState('jump', false)
-  bot.setControlState('sprint', false)
+function stopMotion(state) {
+  if (!state || !state.bot || !state.bot.entity) return
+  state.bot.setControlState('forward', false)
+  state.bot.setControlState('back', false)
+  state.bot.setControlState('left', false)
+  state.bot.setControlState('right', false)
+  state.bot.setControlState('jump', false)
+  state.bot.setControlState('sprint', false)
 }
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-async function moveTo(task, target, range = 1.2, timeoutMs = 60000) {
+async function moveTo(state, task, target, range = 1.2, timeoutMs = 60000) {
   const start = Date.now()
   while (!task.cancelled) {
-    if (!bot.entity) throw new Error('Bot not spawned')
-    const distance = bot.entity.position.distanceTo(target)
+    if (!state.bot.entity) throw new Error('Bot not spawned')
+    const distance = state.bot.entity.position.distanceTo(target)
     if (distance <= range) break
 
     if (Date.now() - start > timeoutMs) {
       throw new Error('Move timeout')
     }
 
-    await bot.lookAt(target, true)
-    bot.setControlState('forward', true)
+    await state.bot.lookAt(target, true)
+    state.bot.setControlState('forward', true)
     await sleep(150)
   }
-  stopMotion()
+  stopMotion(state)
 }
 
-async function followPlayer(task, playerName, distance = 3) {
+async function followPlayer(state, task, playerName, distance = 3) {
   while (!task.cancelled) {
-    const player = bot.players[playerName]
+    const player = state.bot.players[playerName]
     if (!player || !player.entity) {
-      stopMotion()
+      stopMotion(state)
       await sleep(500)
       continue
     }
 
     const target = player.entity.position
-    const dist = bot.entity.position.distanceTo(target)
+    const dist = state.bot.entity.position.distanceTo(target)
     if (dist > distance) {
-      await bot.lookAt(target, true)
-      bot.setControlState('forward', true)
+      await state.bot.lookAt(target, true)
+      state.bot.setControlState('forward', true)
     } else {
-      stopMotion()
+      stopMotion(state)
     }
 
     await sleep(200)
   }
-  stopMotion()
+  stopMotion(state)
 }
 
-function startTask(name, runner) {
-  if (activeTask) {
-    throw new Error(`Busy with ${activeTask.name}`)
+function startTask(state, name, runner) {
+  if (state.activeTask) {
+    throw new Error(`Bot busy with ${state.activeTask.name}`)
   }
 
   const task = { name, cancelled: false }
-  activeTask = task
+  state.activeTask = task
 
   return runner(task)
     .finally(() => {
-      if (activeTask === task) {
-        activeTask = null
+      if (state.activeTask === task) {
+        state.activeTask = null
       }
-      stopMotion()
+      stopMotion(state)
     })
 }
 
-function buildTelemetry() {
-  if (!bot || !bot.entity) {
-    return { inGame: false }
+function buildTelemetry(state) {
+  if (!state || !state.bot || !state.bot.entity) {
+    return { id: state ? state.id : 'unknown', inGame: false }
   }
 
-  const pos = bot.entity.position
+  const pos = state.bot.entity.position
   return {
+    id: state.id,
     inGame: true,
-    name: bot.username,
-    health: bot.health,
-    food: bot.food,
+    name: state.bot.username,
+    health: state.bot.health,
+    food: state.bot.food,
     position: { x: pos.x, y: pos.y, z: pos.z },
-    yaw: bot.entity.yaw,
-    pitch: bot.entity.pitch,
-    task: activeTask ? activeTask.name : 'idle',
-    inventory: bot.inventory.items().slice(0, 8).map(item => ({
+    yaw: state.bot.entity.yaw,
+    pitch: state.bot.entity.pitch,
+    task: state.activeTask ? state.activeTask.name : 'idle',
+    inventory: state.bot.inventory.items().slice(0, 8).map(item => ({
       name: item.name,
       count: item.count
     }))
@@ -155,7 +154,10 @@ function buildTelemetry() {
 function startTelemetry() {
   if (telemetryTimer) return
   telemetryTimer = setInterval(() => {
-    broadcast({ type: 'telemetry', payload: buildTelemetry(), ts: Date.now() })
+    const payload = {
+      bots: Array.from(bots.values()).map(state => buildTelemetry(state))
+    }
+    broadcast({ type: 'telemetry', payload, ts: Date.now() })
   }, 500)
 }
 
@@ -163,6 +165,79 @@ function stopTelemetry() {
   if (!telemetryTimer) return
   clearInterval(telemetryTimer)
   telemetryTimer = null
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function getBotList() {
+  return Array.from(bots.values()).map(state => ({
+    id: state.id,
+    name: state.bot.username,
+    viewerPort: state.viewerPort,
+    inGame: Boolean(state.bot && state.bot.entity)
+  }))
+}
+
+function broadcastBotList() {
+  broadcast({ type: 'bot-list', payload: { bots: getBotList() } })
+}
+
+function getState(botId) {
+  if (botId) {
+    const state = bots.get(botId)
+    if (!state) throw new Error(`Unknown bot: ${botId}`)
+    return state
+  }
+  if (defaultBotId && bots.has(defaultBotId)) return bots.get(defaultBotId)
+  const first = bots.values().next().value
+  if (first) return first
+  throw new Error('No bots available')
+}
+
+function spawnBot({ username, host, port }) {
+  const id = username
+  if (!id) throw new Error('username required')
+  if (bots.has(id)) throw new Error(`Bot already exists: ${id}`)
+
+  const viewerPort = nextViewerPort
+  nextViewerPort += 1
+
+  const bot = mineflayer.createBot({
+    username,
+    host,
+    port
+  })
+
+  const state = {
+    id,
+    bot,
+    viewerPort,
+    activeTask: null
+  }
+
+  bots.set(id, state)
+  if (!defaultBotId) defaultBotId = id
+
+  bot.once('spawn', () => {
+    mineflayerViewer(bot, { port: viewerPort, firstPerson: true })
+    startTelemetry()
+    broadcastBotList()
+    console.log(`[remote-control] ${id} viewer on http://localhost:${viewerPort}`)
+  })
+
+  bot.on('end', () => {
+    if (state.activeTask) state.activeTask.cancelled = true
+    stopMotion(state)
+    broadcastBotList()
+  })
+
+  bot.on('error', err => {
+    console.error(`[remote-control] bot error (${id})`, err)
+  })
+
+  return state
 }
 
 wss.on('connection', (ws, req) => {
@@ -185,10 +260,10 @@ wss.on('connection', (ws, req) => {
   send(ws, {
     type: 'hello',
     payload: {
-      botName: CONFIG.username,
-      viewerPort: CONFIG.viewerPort,
-      viewerUrl: `http://localhost:${CONFIG.viewerPort}`,
-      controlPort: CONFIG.controlPort
+      bots: getBotList(),
+      defaultBotId,
+      controlPort: CONFIG.controlPort,
+      lookSensitivity: CONFIG.lookSensitivity
     }
   })
 
@@ -209,35 +284,81 @@ wss.on('connection', (ws, req) => {
     }
 
     if (type === 'status') {
-      send(ws, { type: 'status', id, payload: buildTelemetry() })
+      const state = getState(args.botId)
+      send(ws, { type: 'status', id, payload: buildTelemetry(state) })
       return
     }
 
     if (type === 'stop') {
-      if (activeTask) activeTask.cancelled = true
-      stopMotion()
+      const targets = args.botId ? [getState(args.botId)] : Array.from(bots.values())
+      for (const state of targets) {
+        if (state.activeTask) state.activeTask.cancelled = true
+        stopMotion(state)
+      }
       send(ws, { type: 'done', id })
       return
     }
 
     try {
       if (type === 'move') {
+        const state = getState(args.botId)
         const { x, y, z } = args
         if (![x, y, z].every(value => Number.isFinite(value))) {
           throw new Error('move requires numeric x, y, z')
         }
         send(ws, { type: 'ack', id })
-        await startTask('move', task => moveTo(task, new Vec3(x, y, z)))
+        await startTask(state, 'move', task => moveTo(state, task, new Vec3(x, y, z)))
         send(ws, { type: 'done', id })
         return
       }
 
       if (type === 'follow') {
+        const state = getState(args.botId)
         const { playerName, distance } = args
         if (!playerName) throw new Error('follow requires playerName')
         send(ws, { type: 'ack', id })
-        await startTask('follow', task => followPlayer(task, playerName, Number(distance) || 3))
+        await startTask(state, 'follow', task => followPlayer(state, task, playerName, Number(distance) || 3))
         send(ws, { type: 'done', id })
+        return
+      }
+
+      if (type === 'control') {
+        const state = getState(args.botId)
+        const { control, value } = args
+        if (!control) throw new Error('control requires control name')
+        if (state.activeTask) state.activeTask.cancelled = true
+        state.bot.setControlState(control, Boolean(value))
+        send(ws, { type: 'done', id })
+        return
+      }
+
+      if (type === 'look') {
+        const state = getState(args.botId)
+        const { dx, dy, yaw, pitch, sensitivity } = args
+        if (!state.bot.entity) throw new Error('Bot not spawned')
+        if (Number.isFinite(yaw) && Number.isFinite(pitch)) {
+          await state.bot.look(yaw, clamp(pitch, -1.55, 1.55), true)
+          send(ws, { type: 'done', id })
+          return
+        }
+        if (!Number.isFinite(dx) || !Number.isFinite(dy)) {
+          throw new Error('look requires dx/dy or yaw/pitch')
+        }
+        const scale = Number.isFinite(sensitivity) ? Number(sensitivity) : CONFIG.lookSensitivity
+        const nextYaw = state.bot.entity.yaw - dx * scale
+        const nextPitch = clamp(state.bot.entity.pitch - dy * scale, -1.55, 1.55)
+        await state.bot.look(nextYaw, nextPitch, true)
+        send(ws, { type: 'done', id })
+        return
+      }
+
+      if (type === 'spawn') {
+        const { username } = args
+        if (!username) throw new Error('spawn requires username')
+        send(ws, { type: 'ack', id })
+        const state = spawnBot({ username, host: CONFIG.host, port: CONFIG.port })
+        send(ws, { type: 'done', id, payload: { botId: state.id, viewerPort: state.viewerPort } })
+        broadcastBotList()
         return
       }
 
@@ -248,20 +369,14 @@ wss.on('connection', (ws, req) => {
   })
 })
 
-bot.once('spawn', () => {
-  mineflayerViewer(bot, { port: CONFIG.viewerPort, firstPerson: true })
-  startTelemetry()
-  console.log(`[remote-control] viewer on http://localhost:${CONFIG.viewerPort}`)
-})
+const initialBotNames = (process.env.MC_BOTS || CONFIG.username)
+  .split(',')
+  .map(name => name.trim())
+  .filter(Boolean)
 
-bot.on('end', () => {
-  stopTelemetry()
-  if (activeTask) activeTask.cancelled = true
-})
-
-bot.on('error', err => {
-  console.error('[remote-control] bot error', err)
-})
+for (const name of initialBotNames) {
+  spawnBot({ username: name, host: CONFIG.host, port: CONFIG.port })
+}
 
 server.listen(CONFIG.controlPort, () => {
   console.log(`[remote-control] ui on http://localhost:${CONFIG.controlPort}`)

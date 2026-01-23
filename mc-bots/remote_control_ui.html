@@ -10,12 +10,18 @@
     .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
     .card { background: #171b23; padding: 12px; border-radius: 10px; border: 1px solid #2a2f3b; }
     label { display: block; font-size: 12px; margin-bottom: 4px; color: #aab0c0; }
-    input, button { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #2a2f3b; background: #0f1115; color: #e6e6e6; }
+    input, button, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #2a2f3b; background: #0f1115; color: #e6e6e6; }
     button { cursor: pointer; background: #2f6b3b; border-color: #2f6b3b; }
     button.secondary { background: #2a2f3b; border-color: #2a2f3b; }
     .row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
     pre { background: #0b0d11; padding: 8px; border-radius: 6px; height: 140px; overflow: auto; }
     iframe { width: 100%; height: 360px; border: 0; border-radius: 10px; background: #0b0d11; }
+    .viewer-wrap { position: relative; }
+    .viewer-overlay { position: absolute; inset: 0; border-radius: 10px; pointer-events: none; }
+    .viewer-overlay.active { pointer-events: auto; cursor: grab; outline: 2px solid rgba(124, 179, 66, 0.6); }
+    .viewer-overlay.active.is-looking { cursor: grabbing; }
+    .viewer-hint { position: absolute; left: 12px; bottom: 12px; background: rgba(15, 17, 21, 0.85); border: 1px solid #2a2f3b; padding: 8px 10px; border-radius: 8px; font-size: 12px; color: #cbd2e0; max-width: 320px; opacity: 0; transition: opacity 0.2s ease; }
+    .viewer-overlay.active .viewer-hint { opacity: 1; }
   </style>
 </head>
 <body>
@@ -28,6 +34,16 @@
       <button id="connect">Connect</button>
       <button id="disconnect" class="secondary">Disconnect</button>
       <p id="status">Disconnected</p>
+    </div>
+
+    <div class="card">
+      <h3>Bots</h3>
+      <label>Active Bot</label>
+      <select id="bot-select"></select>
+      <label>Spawn Bot (username)</label>
+      <input id="spawn-name" placeholder="bot_username" />
+      <button id="spawn">Spawn</button>
+      <p id="bot-status">No bots connected</p>
     </div>
 
     <div class="card">
@@ -54,11 +70,27 @@
       <h3>Telemetry</h3>
       <pre id="telemetry">Waiting...</pre>
     </div>
+
+    <div class="card">
+      <h3>Viewer Controls</h3>
+      <label>Enable Viewer Control Layer</label>
+      <button id="toggle-controls" class="secondary">Enable</button>
+      <label>Look Sensitivity</label>
+      <input id="look-sensitivity" value="0.0025" />
+      <p style="font-size: 12px; color: #aab0c0;">
+        Right click + drag to look. WASD to move, Space to jump, Shift to sprint.
+      </p>
+    </div>
   </div>
 
   <div class="card" style="margin-top: 12px;">
     <h3>Viewer</h3>
-    <iframe id="viewer" title="Prismarine Viewer"></iframe>
+    <div class="viewer-wrap">
+      <iframe id="viewer" title="Prismarine Viewer"></iframe>
+      <div id="viewer-overlay" class="viewer-overlay">
+        <div class="viewer-hint">Viewer controls enabled. Right click + drag to look. WASD/Space/Shift to move.</div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -68,15 +100,71 @@
     const statusEl = document.getElementById('status')
     const telemetryEl = document.getElementById('telemetry')
     const viewerEl = document.getElementById('viewer')
+    const overlayEl = document.getElementById('viewer-overlay')
+    const botSelectEl = document.getElementById('bot-select')
+    const botStatusEl = document.getElementById('bot-status')
+    const toggleControlsEl = document.getElementById('toggle-controls')
+    const lookSensitivityEl = document.getElementById('look-sensitivity')
+
+    let selectedBotId = ''
+    let controlsEnabled = false
+    let isLooking = false
+    let lastMouseX = 0
+    let lastMouseY = 0
+    let lookSensitivity = 0.0025
+    let botsCache = []
+    const heldKeys = new Set()
+    const keyMap = new Map([
+      ['KeyW', 'forward'],
+      ['KeyS', 'back'],
+      ['KeyA', 'left'],
+      ['KeyD', 'right'],
+      ['Space', 'jump'],
+      ['ShiftLeft', 'sprint'],
+      ['ShiftRight', 'sprint']
+    ])
 
     function logStatus(text) {
       statusEl.textContent = text
     }
 
-    function send(type, args = {}) {
+    function send(type, args = {}, options = {}) {
       if (!ws || ws.readyState !== WebSocket.OPEN) return
       lastCommandId += 1
-      ws.send(JSON.stringify({ type, id: `cmd-${lastCommandId}`, args }))
+      const payloadArgs = { ...args }
+      if (options.includeBotId !== false && selectedBotId && !payloadArgs.botId) {
+        payloadArgs.botId = selectedBotId
+      }
+      ws.send(JSON.stringify({ type, id: `cmd-${lastCommandId}`, args: payloadArgs }))
+    }
+
+    function updateBotSelect(bots) {
+      botsCache = bots || []
+      botSelectEl.innerHTML = ''
+      if (!botsCache || botsCache.length === 0) {
+        const option = document.createElement('option')
+        option.value = ''
+        option.textContent = 'No bots'
+        botSelectEl.appendChild(option)
+        selectedBotId = ''
+        botStatusEl.textContent = 'No bots connected'
+        return
+      }
+      botsCache.forEach(bot => {
+        const option = document.createElement('option')
+        option.value = bot.id
+        option.textContent = `${bot.name} (${bot.inGame ? 'online' : 'offline'})`
+        botSelectEl.appendChild(option)
+      })
+      if (!selectedBotId || !botsCache.find(bot => bot.id === selectedBotId)) {
+        selectedBotId = botsCache[0].id
+        botSelectEl.value = selectedBotId
+      }
+      const active = botsCache.find(bot => bot.id === selectedBotId)
+      botStatusEl.textContent = active ? `Active: ${active.name}` : 'Select a bot'
+      if (active && active.viewerPort) {
+        viewerEl.src = `http://${location.hostname}:${active.viewerPort}`
+      }
     }
 
     document.getElementById('connect').addEventListener('click', () => {
@@ -92,11 +180,21 @@
       ws.addEventListener('message', event => {
         const data = JSON.parse(event.data)
         if (data.type === 'telemetry') {
-          telemetryEl.textContent = JSON.stringify(data.payload, null, 2)
+          const bots = data.payload && data.payload.bots ? data.payload.bots : []
+          const active = bots.find(bot => bot.id === selectedBotId) || bots[0]
+          telemetryEl.textContent = JSON.stringify(active || {}, null, 2)
         }
         if (data.type === 'hello') {
-          const { viewerPort } = data.payload
-          viewerEl.src = `http://${location.hostname}:${viewerPort}`
+          const { bots, defaultBotId, lookSensitivity: serverSensitivity } = data.payload
+          if (Number.isFinite(serverSensitivity)) {
+            lookSensitivity = serverSensitivity
+            lookSensitivityEl.value = String(serverSensitivity)
+          }
+          selectedBotId = defaultBotId || selectedBotId
+          updateBotSelect(bots || [])
+        }
+        if (data.type === 'bot-list') {
+          updateBotSelect(data.payload.bots || [])
         }
         if (data.type === 'error') {
           logStatus(`Error: ${data.message || 'unknown'}`)
@@ -106,6 +204,23 @@
 
     document.getElementById('disconnect').addEventListener('click', () => {
       if (ws) ws.close()
+    })
+
+    botSelectEl.addEventListener('change', event => {
+      selectedBotId = event.target.value
+      const active = botsCache.find(bot => bot.id === selectedBotId)
+      if (active && active.viewerPort) {
+        viewerEl.src = `http://${location.hostname}:${active.viewerPort}`
+        botStatusEl.textContent = `Active: ${active.name}`
+      }
+      send('status')
+    })
+
+    document.getElementById('spawn').addEventListener('click', () => {
+      const username = document.getElementById('spawn-name').value.trim()
+      if (!username) return
+      send('spawn', { username }, { includeBotId: false })
+      document.getElementById('spawn-name').value = ''
     })
 
     document.getElementById('move').addEventListener('click', () => {
@@ -123,6 +238,67 @@
 
     document.getElementById('stop').addEventListener('click', () => {
       send('stop')
+    })
+
+    toggleControlsEl.addEventListener('click', () => {
+      controlsEnabled = !controlsEnabled
+      overlayEl.classList.toggle('active', controlsEnabled)
+      toggleControlsEl.textContent = controlsEnabled ? 'Disable' : 'Enable'
+    })
+
+    lookSensitivityEl.addEventListener('change', event => {
+      const value = Number(event.target.value)
+      if (Number.isFinite(value)) {
+        lookSensitivity = value
+      }
+    })
+
+    overlayEl.addEventListener('contextmenu', event => {
+      if (controlsEnabled) {
+        event.preventDefault()
+      }
+    })
+
+    overlayEl.addEventListener('mousedown', event => {
+      if (!controlsEnabled) return
+      if (event.button !== 2) return
+      isLooking = true
+      overlayEl.classList.add('is-looking')
+      lastMouseX = event.clientX
+      lastMouseY = event.clientY
+    })
+
+    window.addEventListener('mouseup', event => {
+      if (event.button !== 2) return
+      isLooking = false
+      overlayEl.classList.remove('is-looking')
+    })
+
+    overlayEl.addEventListener('mousemove', event => {
+      if (!controlsEnabled || !isLooking) return
+      const dx = event.clientX - lastMouseX
+      const dy = event.clientY - lastMouseY
+      lastMouseX = event.clientX
+      lastMouseY = event.clientY
+      if (dx === 0 && dy === 0) return
+      send('look', { dx, dy, sensitivity: lookSensitivity })
+    })
+
+    window.addEventListener('keydown', event => {
+      if (!controlsEnabled) return
+      if (event.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return
+      const control = keyMap.get(event.code)
+      if (!control || heldKeys.has(event.code)) return
+      heldKeys.add(event.code)
+      send('control', { control, value: true })
+    })
+
+    window.addEventListener('keyup', event => {
+      if (!controlsEnabled) return
+      const control = keyMap.get(event.code)
+      if (!control) return
+      heldKeys.delete(event.code)
+      send('control', { control, value: false })
     })
   </script>
 </body>

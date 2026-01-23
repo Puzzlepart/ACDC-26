@@ -7,8 +7,8 @@ const mineflayerViewer = require('prismarine-viewer').mineflayer
 const { Vec3 } = require('vec3')
 
 const CONFIG = {
-  host: process.env.MC_HOST || 'localhost',
-  port: Number(process.env.MC_PORT || 55916),
+  host: 'mc.craycon.no',
+  port: 25565,
   username: process.env.MC_USERNAME || 'comrade_remote',
   viewerPort: Number(process.env.VIEWER_PORT || 3000),
   controlPort: Number(process.env.CONTROL_PORT || 4000),

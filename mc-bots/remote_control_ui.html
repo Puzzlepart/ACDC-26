@@ -3,29 +3,55 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Remote Control Bot</title>
+  <title>CCCPCCC Control Console</title>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; margin: 16px; background: #0f1115; color: #e6e6e6; }
-    h1 { font-size: 20px; margin-bottom: 12px; }
-    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-    .card { background: #171b23; padding: 12px; border-radius: 10px; border: 1px solid #2a2f3b; }
-    label { display: block; font-size: 12px; margin-bottom: 4px; color: #aab0c0; }
-    input, button, select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #2a2f3b; background: #0f1115; color: #e6e6e6; }
-    button { cursor: pointer; background: #2f6b3b; border-color: #2f6b3b; }
-    button.secondary { background: #2a2f3b; border-color: #2a2f3b; }
-    .row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
-    pre { background: #0b0d11; padding: 8px; border-radius: 6px; height: 140px; overflow: auto; }
-    iframe { width: 100%; height: 360px; border: 0; border-radius: 10px; background: #0b0d11; }
+    * { box-sizing: border-box; }
+    :root {
+      --red: #b31217;
+      --red-dark: #6d0b10;
+      --gold: #f3c04a;
+      --panel: #151821;
+      --panel-2: #0f1219;
+      --text: #f2f2f4;
+      --muted: #c1c6d3;
+      --border: #2a2f3b;
+    }
+    body {
+      font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+      margin: 0;
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(179, 18, 23, 0.25), transparent 60%),
+        radial-gradient(800px 500px at 90% 10%, rgba(243, 192, 74, 0.18), transparent 60%),
+        #0b0d12;
+      color: var(--text);
+    }
+    .shell { max-width: 1340px; margin: 0 auto; padding: 14px; }
+    header { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid #3a1b1b; border-left: 4px solid var(--red); background: linear-gradient(90deg, rgba(179, 18, 23, 0.18), transparent); }
+    h1 { font-size: 18px; margin: 0; text-transform: uppercase; letter-spacing: 1.2px; color: var(--gold); word-break: break-word; }
+    .subtitle { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .card { background: linear-gradient(160deg, var(--panel), var(--panel-2)); padding: 10px; border-radius: 10px; border: 1px solid #2c313d; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2); }
+    h3 { margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gold); }
+    label { display: block; font-size: 11px; margin-bottom: 4px; color: var(--muted); }
+    input, button, select { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: #0d1016; color: var(--text); }
+    button { cursor: pointer; background: linear-gradient(180deg, var(--red), var(--red-dark)); border-color: #7b0b12; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+    button.secondary { background: #2a2f3b; border-color: #2a2f3b; text-transform: none; font-weight: 500; }
+    .row { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+    pre { background: #0a0c10; padding: 8px; border-radius: 6px; height: 120px; overflow: auto; font-size: 12px; }
+    iframe { width: 100%; height: 320px; border: 0; border-radius: 10px; background: #0b0d11; }
     .viewer-wrap { position: relative; }
     .viewer-overlay { position: absolute; inset: 0; border-radius: 10px; pointer-events: none; }
-    .viewer-overlay.active { pointer-events: auto; cursor: grab; outline: 2px solid rgba(124, 179, 66, 0.6); }
+    .viewer-overlay.active { pointer-events: auto; cursor: grab; outline: 2px solid rgba(243, 192, 74, 0.6); }
     .viewer-overlay.active.is-looking { cursor: grabbing; }
-    .viewer-hint { position: absolute; left: 12px; bottom: 12px; background: rgba(15, 17, 21, 0.85); border: 1px solid #2a2f3b; padding: 8px 10px; border-radius: 8px; font-size: 12px; color: #cbd2e0; max-width: 320px; opacity: 0; transition: opacity 0.2s ease; }
+    .viewer-hint { position: absolute; left: 12px; bottom: 12px; background: rgba(15, 17, 21, 0.85); border: 1px solid #2a2f3b; padding: 8px 10px; border-radius: 8px; font-size: 11px; color: #cbd2e0; max-width: 320px; opacity: 0; transition: opacity 0.2s ease; }
     .viewer-overlay.active .viewer-hint { opacity: 1; }
   </style>
 </head>
 <body>
-  <h1>Remote Control Bot</h1>
+  <div class="shell">
+    <header>
+      <h1>CrayCon Creepers Central Production Command and Control Center (CCCPCCC, lol)</h1>
+      <div class="subtitle">Authorized Operators Only • Productivity Above All</div>
+    </header>
 
   <div class="grid">
     <div class="card">
@@ -44,6 +70,16 @@
       <input id="spawn-name" placeholder="bot_username" />
       <button id="spawn">Spawn</button>
       <p id="bot-status">No bots connected</p>
+    </div>
+
+    <div class="card">
+      <h3>Jobs</h3>
+      <label>Job</label>
+      <select id="job-select"></select>
+      <label>Job Options (JSON)</label>
+      <input id="job-options" placeholder='{"radius":8}' />
+      <button id="job-start">Start Job</button>
+      <button id="job-stop" class="secondary">Stop Job</button>
     </div>
 
     <div class="card">
@@ -81,6 +117,46 @@
         Right click + drag to look. WASD to move, Space to jump, Shift to sprint.
       </p>
     </div>
+
+    <div class="card">
+      <h3>Mindcraft LLM</h3>
+      <label>MindServer Host</label>
+      <input id="mindcraft-host" value="localhost" />
+      <label>MindServer Port</label>
+      <input id="mindcraft-port" value="8080" />
+      <button id="mindcraft-connect" class="secondary">Connect</button>
+      <label>Profile</label>
+      <select id="mindcraft-profile"></select>
+      <label>Minecraft Host</label>
+      <input id="mindcraft-mc-host" value="localhost" />
+      <label>Minecraft Port</label>
+      <input id="mindcraft-mc-port" value="55916" />
+      <label>Agent Name</label>
+      <input id="mindcraft-name" placeholder="llm_bot" />
+      <label>Auth</label>
+      <select id="mindcraft-auth">
+        <option value="offline">offline</option>
+        <option value="microsoft">microsoft</option>
+      </select>
+      <label>Base Profile</label>
+      <select id="mindcraft-base">
+        <option value="survival">survival</option>
+        <option value="assistant">assistant</option>
+        <option value="creative">creative</option>
+        <option value="god_mode">god_mode</option>
+      </select>
+      <label>Init Message</label>
+      <input id="mindcraft-init" value="Respond with hello world and your name" />
+      <button id="mindcraft-create">Create LLM Bot</button>
+      <label>Existing Agents</label>
+      <select id="mindcraft-agent"></select>
+      <div class="row">
+        <button id="mindcraft-start">Start</button>
+        <button id="mindcraft-stop" class="secondary">Stop</button>
+        <button id="mindcraft-destroy" class="secondary">Destroy</button>
+      </div>
+      <p id="mindcraft-status" style="font-size: 12px; color: #aab0c0;">Mindcraft: disconnected</p>
+    </div>
   </div>
 
   <div class="card" style="margin-top: 12px;">
@@ -91,6 +167,7 @@
         <div class="viewer-hint">Viewer controls enabled. Right click + drag to look. WASD/Space/Shift to move.</div>
       </div>
     </div>
+  </div>
   </div>
 
   <script>
@@ -105,6 +182,26 @@
     const botStatusEl = document.getElementById('bot-status')
     const toggleControlsEl = document.getElementById('toggle-controls')
     const lookSensitivityEl = document.getElementById('look-sensitivity')
+    const jobSelectEl = document.getElementById('job-select')
+    const jobOptionsEl = document.getElementById('job-options')
+    const jobStartEl = document.getElementById('job-start')
+    const jobStopEl = document.getElementById('job-stop')
+    const mindcraftHostEl = document.getElementById('mindcraft-host')
+    const mindcraftPortEl = document.getElementById('mindcraft-port')
+    const mindcraftConnectEl = document.getElementById('mindcraft-connect')
+    const mindcraftProfileEl = document.getElementById('mindcraft-profile')
+    const mindcraftMcHostEl = document.getElementById('mindcraft-mc-host')
+    const mindcraftMcPortEl = document.getElementById('mindcraft-mc-port')
+    const mindcraftNameEl = document.getElementById('mindcraft-name')
+    const mindcraftAuthEl = document.getElementById('mindcraft-auth')
+    const mindcraftBaseEl = document.getElementById('mindcraft-base')
+    const mindcraftInitEl = document.getElementById('mindcraft-init')
+    const mindcraftCreateEl = document.getElementById('mindcraft-create')
+    const mindcraftAgentEl = document.getElementById('mindcraft-agent')
+    const mindcraftStartEl = document.getElementById('mindcraft-start')
+    const mindcraftStopEl = document.getElementById('mindcraft-stop')
+    const mindcraftDestroyEl = document.getElementById('mindcraft-destroy')
+    const mindcraftStatusEl = document.getElementById('mindcraft-status')
 
     let selectedBotId = ''
     let controlsEnabled = false
@@ -112,7 +209,10 @@
     let lastMouseX = 0
     let lastMouseY = 0
     let lookSensitivity = 0.0025
+    let viewerHost = location.hostname
     let botsCache = []
+    let jobsCache = []
+    let mindcraftProfiles = []
     const heldKeys = new Set()
     const keyMap = new Map([
       ['KeyW', 'forward'],
@@ -153,7 +253,8 @@
       botsCache.forEach(bot => {
         const option = document.createElement('option')
         option.value = bot.id
-        option.textContent = `${bot.name} (${bot.inGame ? 'online' : 'offline'})`
+        const jobLabel = bot.job ? ` • ${bot.job}` : ''
+        option.textContent = `${bot.name} (${bot.inGame ? 'online' : 'offline'})${jobLabel}`
         botSelectEl.appendChild(option)
       })
       if (!selectedBotId || !botsCache.find(bot => bot.id === selectedBotId)) {
@@ -163,8 +264,95 @@
       const active = botsCache.find(bot => bot.id === selectedBotId)
       botStatusEl.textContent = active ? `Active: ${active.name}` : 'Select a bot'
       if (active && active.viewerPort) {
-        viewerEl.src = `http://${location.hostname}:${active.viewerPort}`
+        viewerEl.src = `http://${viewerHost}:${active.viewerPort}`
       }
+    }
+
+    function updateJobSelect(jobs) {
+      jobsCache = jobs || []
+      jobSelectEl.innerHTML = ''
+      if (!jobsCache.length) {
+        const option = document.createElement('option')
+        option.value = ''
+        option.textContent = 'No jobs'
+        jobSelectEl.appendChild(option)
+        return
+      }
+      jobsCache.forEach(job => {
+        const option = document.createElement('option')
+        option.value = job.id
+        option.textContent = job.label || job.id
+        jobSelectEl.appendChild(option)
+      })
+      if (!jobSelectEl.value) {
+        jobSelectEl.value = jobsCache[0].id
+      }
+    }
+
+    function updateMindcraftProfiles(profiles) {
+      mindcraftProfiles = profiles || []
+      mindcraftProfileEl.innerHTML = ''
+      if (!mindcraftProfiles.length) {
+        const option = document.createElement('option')
+        option.value = ''
+        option.textContent = 'No profiles'
+        mindcraftProfileEl.appendChild(option)
+        return
+      }
+      mindcraftProfiles.forEach(profile => {
+        const option = document.createElement('option')
+        option.value = profile
+        option.textContent = profile
+        mindcraftProfileEl.appendChild(option)
+      })
+      if (!mindcraftProfileEl.value) {
+        mindcraftProfileEl.value = mindcraftProfiles[0]
+      }
+    }
+
+    function updateMindcraftAgents(agents) {
+      mindcraftAgentEl.innerHTML = ''
+      const list = agents || []
+      if (!list.length) {
+        const option = document.createElement('option')
+        option.value = ''
+        option.textContent = 'No agents'
+        mindcraftAgentEl.appendChild(option)
+        return
+      }
+      list.forEach(agent => {
+        const option = document.createElement('option')
+        option.value = agent.name
+        option.textContent = `${agent.name} (${agent.in_game ? 'online' : 'offline'})`
+        mindcraftAgentEl.appendChild(option)
+      })
+      if (!mindcraftAgentEl.value) {
+        mindcraftAgentEl.value = list[0].name
+      }
+    }
+
+    function setMindcraftAvailability(enabled, available) {
+      const disabled = !enabled || !available
+      const elements = [
+        mindcraftHostEl,
+        mindcraftPortEl,
+        mindcraftConnectEl,
+        mindcraftProfileEl,
+        mindcraftMcHostEl,
+        mindcraftMcPortEl,
+        mindcraftNameEl,
+        mindcraftAuthEl,
+        mindcraftBaseEl,
+        mindcraftInitEl,
+        mindcraftCreateEl,
+        mindcraftAgentEl,
+        mindcraftStartEl,
+        mindcraftStopEl,
+        mindcraftDestroyEl
+      ]
+      elements.forEach(el => {
+        el.disabled = disabled
+      })
     }
 
     document.getElementById('connect').addEventListener('click', () => {
@@ -185,16 +373,37 @@
           telemetryEl.textContent = JSON.stringify(active || {}, null, 2)
         }
         if (data.type === 'hello') {
-          const { bots, defaultBotId, lookSensitivity: serverSensitivity } = data.payload
+          const { bots, defaultBotId, lookSensitivity: serverSensitivity, viewerHost: hostOverride, jobs, mindcraft, mcHost, mcPort } = data.payload
           if (Number.isFinite(serverSensitivity)) {
             lookSensitivity = serverSensitivity
             lookSensitivityEl.value = String(serverSensitivity)
           }
+          if (hostOverride) {
+            viewerHost = hostOverride
+          }
+          if (mcHost) mindcraftMcHostEl.value = mcHost
+          if (mcPort) mindcraftMcPortEl.value = String(mcPort)
           selectedBotId = defaultBotId || selectedBotId
           updateBotSelect(bots || [])
+          updateJobSelect(jobs || [])
+          if (mindcraft) {
+            mindcraftHostEl.value = mindcraft.host || mindcraftHostEl.value
+            mindcraftPortEl.value = mindcraft.port || mindcraftPortEl.value
+            updateMindcraftProfiles(mindcraft.profiles || [])
+            setMindcraftAvailability(mindcraft.enabled, mindcraft.available)
+          }
         }
         if (data.type === 'bot-list') {
           updateBotSelect(data.payload.bots || [])
+        }
+        if (data.type === 'mindcraft-status') {
+          const payload = data.payload || {}
+          const statusText = payload.connected ? 'connected' : 'disconnected'
+          mindcraftStatusEl.textContent = `Mindcraft: ${statusText}`
+          if (payload.host) mindcraftHostEl.value = payload.host
+          if (payload.port) mindcraftPortEl.value = String(payload.port)
+          updateMindcraftAgents(payload.agents || [])
+          setMindcraftAvailability(payload.enabled, payload.available)
         }
         if (data.type === 'error') {
           logStatus(`Error: ${data.message || 'unknown'}`)
@@ -210,7 +419,7 @@
       selectedBotId = event.target.value
       const active = botsCache.find(bot => bot.id === selectedBotId)
       if (active && active.viewerPort) {
-        viewerEl.src = `http://${location.hostname}:${active.viewerPort}`
+        viewerEl.src = `http://${viewerHost}:${active.viewerPort}`
         botStatusEl.textContent = `Active: ${active.name}`
       }
       send('status')
@@ -238,6 +447,105 @@
 
     document.getElementById('stop').addEventListener('click', () => {
       send('stop')
+    })
+
+    jobStartEl.addEventListener('click', () => {
+      const job = jobSelectEl.value
+      if (!job) return
+      let options = {}
+      const raw = jobOptionsEl.value.trim()
+      if (raw) {
+        try {
+          options = JSON.parse(raw)
+        } catch (error) {
+          logStatus('Error: invalid job options JSON')
+          return
+        }
+      }
+      send('job', { action: 'start', job, options })
+    })
+
+    jobStopEl.addEventListener('click', () => {
+      send('job', { action: 'stop' })
+    })
+
+    mindcraftConnectEl.addEventListener('click', () => {
+      send(
+        'mindcraft',
+        {
+          action: 'connect',
+          host: mindcraftHostEl.value.trim() || 'localhost',
+          port: Number(mindcraftPortEl.value) || 8080
+        },
+        { includeBotId: false }
+      )
+    })
+
+    mindcraftCreateEl.addEventListener('click', () => {
+      const profile = mindcraftProfileEl.value
+      if (!profile) return
+      const name = mindcraftNameEl.value.trim()
+      send(
+        'mindcraft',
+        {
+          action: 'create',
+          profile,
+          name,
+          auth: mindcraftAuthEl.value,
+          baseProfile: mindcraftBaseEl.value,
+          initMessage: mindcraftInitEl.value.trim(),
+          host: mindcraftMcHostEl.value.trim(),
+          port: Number(mindcraftMcPortEl.value),
+          mindcraftHost: mindcraftHostEl.value.trim() || 'localhost',
+          mindcraftPort: Number(mindcraftPortEl.value) || 8080
+        },
+        { includeBotId: false }
+      )
+    })
+
+    mindcraftStartEl.addEventListener('click', () => {
+      const name = mindcraftAgentEl.value
+      if (!name) return
+      send(
+        'mindcraft',
+        {
+          action: 'start',
+          name,
+          mindcraftHost: mindcraftHostEl.value.trim() || 'localhost',
+          mindcraftPort: Number(mindcraftPortEl.value) || 8080
+        },
+        { includeBotId: false }
+      )
+    })
+
+    mindcraftStopEl.addEventListener('click', () => {
+      const name = mindcraftAgentEl.value
+      if (!name) return
+      send(
+        'mindcraft',
+        {
+          action: 'stop',
+          name,
+          mindcraftHost: mindcraftHostEl.value.trim() || 'localhost',
+          mindcraftPort: Number(mindcraftPortEl.value) || 8080
+        },
+        { includeBotId: false }
+      )
+    })
+
+    mindcraftDestroyEl.addEventListener('click', () => {
+      const name = mindcraftAgentEl.value
+      if (!name) return
+      send(
+        'mindcraft',
+        {
+          action: 'destroy',
+          name,
+          mindcraftHost: mindcraftHostEl.value.trim() || 'localhost',
+          mindcraftPort: Number(mindcraftPortEl.value) || 8080
+        },
+        { includeBotId: false }
+      )
     })
 
     toggleControlsEl.addEventListener('click', () => {
@@ -289,6 +597,7 @@
       if (event.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return
       const control = keyMap.get(event.code)
       if (!control || heldKeys.has(event.code)) return
+      event.preventDefault()
       heldKeys.add(event.code)
       send('control', { control, value: true })
     })
@@ -297,6 +606,7 @@
       if (!controlsEnabled) return
       const control = keyMap.get(event.code)
       if (!control) return
+      event.preventDefault()
       heldKeys.delete(event.code)
       send('control', { control, value: false })
     })

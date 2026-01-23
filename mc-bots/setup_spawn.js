@@ -9,9 +9,9 @@ const CONFIG = {
 const SETUP = {
   centerX: 0,
   centerZ: 0,
-  size: 50,
-  farmRows: 8,
-  farmCols: 8,
+  size: 500,
+  farmRows: 80,
+  farmCols: 80,
   waterInterval: 9
 }
 

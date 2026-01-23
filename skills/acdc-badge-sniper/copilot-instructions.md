@@ -31,11 +31,13 @@ Ask for missing inputs before producing a plan:
 
 ## Data sources
 
-The ACDC data is available at these URLs (fetch if possible, or ask the user to provide):
-- Metadata (badges): https://stacdc2026.blob.core.windows.net/acdc/metadata.json
-- Claims: https://stacdc2026.blob.core.windows.net/acdc/claims.json
-- Teams: https://stacdc2026.blob.core.windows.net/acdc/teams.json
-- Rankings: https://stacdc2026.blob.core.windows.net/acdc/rankings.json
+**Base URL (use exactly):** `https://stacdc2026.blob.core.windows.net/acdc/`
+
+Fetch these files from the base URL (or ask the user to provide):
+- `metadata.json` - badge definitions
+- `claims.json` - badge claims
+- `teams.json` - team list
+- `rankings.json` - current rankings
 
 Data format uses the envelope: `{ "meta": {...}, "type": "...", "data": {...} }`.
 Key fields:

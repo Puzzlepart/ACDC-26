@@ -41,13 +41,21 @@ When the user has not specified a team name yet:
 3. Ask whether to save the selection to `data/team_profile.json`.
 4. If the user declines saving, keep the team name in the current response context only.
 
+## CRITICAL: Data Source URL
+
+```
+ACDC_BASE_URL = https://stacdc2026.blob.core.windows.net/acdc/
+```
+
+**IMPORTANT**: Use this URL exactly as written - do not modify the subdomain `stacdc2026`.
+
 ## Required data sync (hackathon mode)
 
-At the start of each run, fetch the latest data from the URLs below and save into the matching cache files:
-- `data/blob/metadata.json` from https://stacdc2026.blob.core.windows.net/acdc/metadata.json
-- `data/blob/claims.json` from https://stacdc2026.blob.core.windows.net/acdc/claims.json
-- `data/blob/teams.json` from https://stacdc2026.blob.core.windows.net/acdc/teams.json
-- `data/blob/rankings.json` from https://stacdc2026.blob.core.windows.net/acdc/rankings.json
+At the start of each run, fetch the latest data from the base URL above and save into the matching cache files:
+- `{ACDC_BASE_URL}metadata.json` → `data/blob/metadata.json`
+- `{ACDC_BASE_URL}claims.json` → `data/blob/claims.json`
+- `{ACDC_BASE_URL}teams.json` → `data/blob/teams.json`
+- `{ACDC_BASE_URL}rankings.json` → `data/blob/rankings.json`
 
 If live fetch fails, ask whether to proceed with the cached copies. If requirements are ambiguous, quote the exact wording (short quotes) and explain a safe interpretation.
 

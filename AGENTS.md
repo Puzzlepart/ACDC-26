@@ -99,11 +99,13 @@ Fusion of:
 4. Update `skills/acdc-badge-sniper/data/badges_acquired.json`
 
 **Badge data sync:**
-The `acdc-badge-sniper` skill automatically fetches current badge/category definitions from:
-- https://stacdc2026.blob.core.windows.net/acdc/metadata.json
-- https://stacdc2026.blob.core.windows.net/acdc/claims.json
-- https://stacdc2026.blob.core.windows.net/acdc/teams.json
-- https://stacdc2026.blob.core.windows.net/acdc/rankings.json
+Base URL (use exactly): `https://stacdc2026.blob.core.windows.net/acdc/`
+
+The `acdc-badge-sniper` skill automatically fetches:
+- `{BASE_URL}metadata.json`
+- `{BASE_URL}claims.json`
+- `{BASE_URL}teams.json`
+- `{BASE_URL}rankings.json`
 
 See [skills/acdc-badge-sniper/SKILL.md](skills/acdc-badge-sniper/SKILL.md) for detailed usage.
 
@@ -418,11 +420,11 @@ These are simpler, single-purpose scripts for specific tasks.
 - [skills/acdc-badge-sniper/data/badges_acquired.json](skills/acdc-badge-sniper/data/badges_acquired.json) - claimed badges
 - [skills/acdc-badge-sniper/data/blob/](skills/acdc-badge-sniper/data/blob/) - cached badge definitions from ACDC API
 
-Skill auto-syncs badge data from:
-- https://stacdc2026.blob.core.windows.net/acdc/metadata.json
-- https://stacdc2026.blob.core.windows.net/acdc/claims.json
-- https://stacdc2026.blob.core.windows.net/acdc/teams.json
-- https://stacdc2026.blob.core.windows.net/acdc/rankings.json
+Skill auto-syncs badge data from base URL `https://stacdc2026.blob.core.windows.net/acdc/`:
+- `metadata.json`
+- `claims.json`
+- `teams.json`
+- `rankings.json`
 
 ### 9.2 Writing Blog Posts
 

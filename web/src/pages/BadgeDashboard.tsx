@@ -66,6 +66,37 @@ const BadgeDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
+  // Read URL params on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const urlSort = params.get('sort') as SortField | null
+    const urlDir = params.get('dir') as SortDir | null
+    const urlFilter = params.get('filter') as ClaimFilter | null
+    const urlCategory = params.get('category')
+    const urlSearch = params.get('search')
+
+    if (urlSort) setSortField(urlSort)
+    if (urlDir) setSortDir(urlDir)
+    if (urlFilter) setClaimFilter(urlFilter)
+    if (urlCategory) setCategoryFilter(urlCategory)
+    if (urlSearch) setSearchQuery(urlSearch)
+  }, [])
+
+  // Update URL when state changes
+  useEffect(() => {
+    const params = new URLSearchParams()
+    
+    if (selectedTeam) params.set('team', selectedTeam.id)
+    if (sortField !== 'score') params.set('sort', sortField)
+    if (sortDir !== 'desc') params.set('dir', sortDir)
+    if (claimFilter !== 'all') params.set('filter', claimFilter)
+    if (categoryFilter !== 'all') params.set('category', categoryFilter)
+    if (searchQuery) params.set('search', searchQuery)
+
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname
+    window.history.replaceState({}, '', newUrl)
+  }, [selectedTeam, sortField, sortDir, claimFilter, categoryFilter, searchQuery])
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -77,11 +108,24 @@ const BadgeDashboard = () => {
           fetch(`${ACDC_BASE}/rankings.json`).then(r => r.json()),
         ])
 
-        setBadges(metaRes.data.badges || [])
-        setTeams(teamsRes.data.teams || [])
-        setClaims(claimsRes.data.claims || [])
-        setRankings(rankingsRes.data.rankings || [])
+        const loadedBadges = metaRes.data.badges || []
+        const loadedTeams = teamsRes.data.teams || []
+        const loadedClaims = claimsRes.data.claims || []
+        const loadedRankings = rankingsRes.data.rankings || []
+
+        setBadges(loadedBadges)
+        setTeams(loadedTeams)
+        setClaims(loadedClaims)
+        setRankings(loadedRankings)
         setError(null)
+
+        // Restore selected team from URL after data is loaded
+        const params = new URLSearchParams(window.location.search)
+        const teamId = params.get('team')
+        if (teamId) {
+          const team = loadedTeams.find((t: Team) => t.id === teamId)
+          if (team) setSelectedTeam(team)
+        }
       } catch (err) {
         setError('Failed to fetch ACDC data. Check your connection.')
         console.error(err)

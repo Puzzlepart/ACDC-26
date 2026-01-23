@@ -93,13 +93,22 @@ h1 {
   margin: 0;
 }
 .panel-empty { font-size: 12px; color: var(--muted); }
-.grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-auto-rows: 12px;
+  grid-auto-flow: dense;
+}
 .card {
   background: linear-gradient(160deg, var(--panel), var(--panel-2));
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #2c313d;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 .card--wide { grid-column: 1 / -1; }
 .card-head {
@@ -137,9 +146,47 @@ h1 {
 }
 .card-action:hover { background: #3a3f4c; }
 .card-body { display: grid; gap: 6px; }
+.card-body.fill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.card-body.fill pre {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+}
+.card-body.fill .viewer-wrap {
+  flex: 1;
+  min-height: 0;
+}
+.card-body.fill iframe {
+  height: 100%;
+}
 .card.is-minimized .card-body { display: none; }
 .card.is-hidden { display: none; }
 .card.is-dragging { opacity: 0.6; border-style: dashed; }
+.resize-handle {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 14px;
+  height: 14px;
+  cursor: se-resize;
+  border-right: 2px solid rgba(243, 192, 74, 0.6);
+  border-bottom: 2px solid rgba(243, 192, 74, 0.6);
+  opacity: 0.7;
+}
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(243, 192, 74, 0.4);
+  border-bottom: 2px solid rgba(243, 192, 74, 0.4);
+}
 label { display: block; font-size: 11px; margin-bottom: 4px; color: var(--muted); }
 input, button, select {
   width: 100%;
@@ -169,7 +216,7 @@ details { margin-top: 8px; border: 1px solid #2a2f3b; border-radius: 8px; backgr
 summary { list-style: none; cursor: pointer; padding: 8px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gold); }
 summary::-webkit-details-marker { display: none; }
 .accordion-body { padding: 0 10px 10px 10px; display: grid; gap: 8px; }
-pre { background: #0a0c10; padding: 8px; border-radius: 6px; height: 120px; overflow: auto; font-size: 12px; }
+pre { background: #0a0c10; padding: 8px; border-radius: 6px; min-height: 120px; overflow: auto; font-size: 12px; }
 iframe { width: 100%; height: 320px; border: 0; border-radius: 10px; background: #0b0d11; }
 .viewer-wrap { position: relative; }
 .viewer-overlay { position: absolute; inset: 0; border-radius: 10px; pointer-events: none; }

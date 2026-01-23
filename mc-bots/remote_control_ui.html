@@ -122,9 +122,10 @@
             <button class="card-action" data-card-action="close" aria-label="Close">x</button>
           </div>
         </div>
-        <div class="card-body">
+        <div class="card-body fill">
           <pre id="telemetry">Waiting...</pre>
         </div>
+        <div class="resize-handle" data-resize-handle aria-hidden="true"></div>
       </div>
 
       <div class="card" data-card-id="viewer-controls" data-card-title="Viewer Controls">
@@ -195,7 +196,7 @@
         </div>
       </div>
 
-      <div class="card card--wide" data-card-id="viewer" data-card-title="Viewer">
+      <div class="card" data-card-id="viewer" data-card-title="Viewer">
         <div class="card-head" draggable="true">
           <h3>Viewer</h3>
           <div class="card-actions">
@@ -203,7 +204,7 @@
             <button class="card-action" data-card-action="close" aria-label="Close">x</button>
           </div>
         </div>
-        <div class="card-body">
+        <div class="card-body fill">
           <div class="viewer-wrap">
             <iframe id="viewer" title="Prismarine Viewer"></iframe>
             <div id="viewer-overlay" class="viewer-overlay">
@@ -211,6 +212,7 @@
             </div>
           </div>
         </div>
+        <div class="resize-handle" data-resize-handle aria-hidden="true"></div>
       </div>
     </div>
   </div>

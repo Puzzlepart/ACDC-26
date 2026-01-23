@@ -60,11 +60,14 @@ const keyMap = new Map([
 const cards = Array.from(document.querySelectorAll('.card[data-card-id]'))
 const cardMap = new Map(cards.map(card => [card.dataset.cardId, card]))
 const layoutState = loadLayoutState()
+const resizableCards = new Set(['telemetry', 'viewer'])
 
 applyLayoutState()
 bindCardActions()
 bindDragAndDrop()
 bindLayoutPanel()
+bindResizableHandles()
+observeCardSizes()
 
 function logStatus(text) {
   statusEl.textContent = text
@@ -465,10 +468,11 @@ function loadLayoutState() {
     return {
       order: Array.isArray(parsed.order) ? parsed.order : [],
       hidden: Array.isArray(parsed.hidden) ? parsed.hidden : [],
-      minimized: Array.isArray(parsed.minimized) ? parsed.minimized : []
+      minimized: Array.isArray(parsed.minimized) ? parsed.minimized : [],
+      sizes: parsed.sizes && typeof parsed.sizes === 'object' ? parsed.sizes : {}
     }
   } catch (error) {
-    return { order: [], hidden: [], minimized: [] }
+    return { order: [], hidden: [], minimized: [], sizes: {} }
   }
 }
 
@@ -477,6 +481,8 @@ function saveLayoutState() {
 }
 
 function applyLayoutState() {
+  const metrics = getGridMetrics()
+
   if (layoutState.order.length) {
     layoutState.order.forEach(id => {
       const card = cardMap.get(id)
@@ -498,6 +504,18 @@ function applyLayoutState() {
     const card = cardMap.get(id)
     if (card) card.classList.add('is-minimized')
   })
+
+  Object.entries(layoutState.sizes).forEach(([id, size]) => {
+    const card = cardMap.get(id)
+    if (!card || !size) return
+    if (size.colSpan) card.style.gridColumnEnd = `span ${size.colSpan}`
+    if (size.rowSpan) card.style.gridRowEnd = `span ${size.rowSpan}`
+  })
+
+  const viewerCard = cardMap.get('viewer')
+  if (viewerCard && !layoutState.sizes.viewer) {
+    viewerCard.style.gridColumnEnd = `span ${metrics.columnCount}`
+  }
 
   cards.forEach(card => syncCardActionState(card))
   updateHiddenCardsPanel()
@@ -635,4 +653,106 @@ function persistCardOrder() {
     .map(card => card.dataset.cardId)
     .filter(Boolean)
   saveLayoutState()
+}
+
+function getGridMetrics() {
+  const styles = getComputedStyle(gridEl)
+  const columnGap = parseFloat(styles.columnGap) || 0
+  const rowGap = parseFloat(styles.rowGap) || 0
+  const rowHeight = parseFloat(styles.gridAutoRows) || 12
+  const columns = styles.gridTemplateColumns
+    .split(' ')
+    .map(item => parseFloat(item))
+    .filter(Number.isFinite)
+  const colWidth = columns[0] || (gridEl.clientWidth || 1)
+  return {
+    columnGap,
+    rowGap,
+    rowHeight,
+    colWidth,
+    columnCount: columns.length || 1
+  }
+}
+
+function observeCardSizes() {
+  const observer = new ResizeObserver(entries => {
+    const { rowHeight, rowGap } = getGridMetrics()
+    entries.forEach(entry => {
+      const card = entry.target
+      if (card.classList.contains('is-hidden')) return
+      const height = entry.contentRect.height
+      const rowSpan = Math.max(1, Math.ceil((height + rowGap) / (rowHeight + rowGap)))
+      card.style.gridRowEnd = `span ${rowSpan}`
+      if (resizableCards.has(card.dataset.cardId)) {
+        persistCardSize(card)
+      }
+    })
+  })
+  cards.forEach(card => observer.observe(card))
+  window.addEventListener('resize', () => {
+    cards.forEach(card => {
+      if (!card.classList.contains('is-hidden')) {
+        const { rowHeight, rowGap } = getGridMetrics()
+        const height = card.getBoundingClientRect().height
+        const rowSpan = Math.max(1, Math.ceil((height + rowGap) / (rowHeight + rowGap)))
+        card.style.gridRowEnd = `span ${rowSpan}`
+      }
+    })
+  })
+}
+
+function bindResizableHandles() {
+  gridEl.addEventListener('pointerdown', event => {
+    const handle = event.target.closest('[data-resize-handle]')
+    if (!handle) return
+    event.preventDefault()
+    event.stopPropagation()
+    const card = handle.closest('.card')
+    if (!card || !resizableCards.has(card.dataset.cardId)) return
+    const startRect = card.getBoundingClientRect()
+    const startX = event.clientX
+    const startY = event.clientY
+    const metrics = getGridMetrics()
+
+    const onMove = moveEvent => {
+      const dx = moveEvent.clientX - startX
+      const dy = moveEvent.clientY - startY
+      const nextWidth = Math.max(200, startRect.width + dx)
+      const nextHeight = Math.max(120, startRect.height + dy)
+      const colSpan = Math.max(1, Math.round((nextWidth + metrics.columnGap) / (metrics.colWidth + metrics.columnGap)))
+      const rowSpan = Math.max(1, Math.round((nextHeight + metrics.rowGap) / (metrics.rowHeight + metrics.rowGap)))
+      card.style.gridColumnEnd = `span ${Math.min(colSpan, metrics.columnCount || colSpan)}`
+      card.style.gridRowEnd = `span ${rowSpan}`
+      persistCardSize(card, { colSpan, rowSpan })
+    }
+
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  })
+}
+
+function persistCardSize(card, override) {
+  const id = card.dataset.cardId
+  if (!id) return
+  const size = override || {}
+  const colSpan = size.colSpan || parseSpanValue(card.style.gridColumnEnd) || parseSpanValue(card.style.gridColumn)
+  const rowSpan = size.rowSpan || parseSpanValue(card.style.gridRowEnd)
+  if (!layoutState.sizes) layoutState.sizes = {}
+  layoutState.sizes[id] = {
+    colSpan: colSpan || 1,
+    rowSpan: rowSpan || 1
+  }
+  saveLayoutState()
+}
+
+function parseSpanValue(value) {
+  if (!value) return 0
+  const parts = String(value).split(' ')
+  const span = Number(parts[1])
+  return Number.isFinite(span) ? span : 0
 }

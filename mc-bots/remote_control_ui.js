@@ -72,6 +72,16 @@ bindLayoutPanel()
 bindResizableHandles()
 observeCardSizes()
 
+// Auto-populate spawn name with suggested comrade name
+function suggestComradeName() {
+  const num = Math.floor(Math.random() * 100).toString().padStart(2, '0')
+  return `comrade_${num}`
+}
+
+if (document.getElementById('spawn-name')) {
+  document.getElementById('spawn-name').placeholder = suggestComradeName()
+}
+
 function logStatus(text) {
   statusEl.textContent = text
 }
@@ -287,8 +297,8 @@ botSelectEl.addEventListener('change', event => {
 
 document.getElementById('spawn').addEventListener('click', () => {
   const username = document.getElementById('spawn-name').value.trim()
-  if (!username) return
-  send('spawn', { username }, { includeBotId: false })
+  // Username is optional now - server will auto-generate if empty
+  send('spawn', { username: username || undefined }, { includeBotId: false })
   document.getElementById('spawn-name').value = ''
 })
 

@@ -77,13 +77,15 @@ function findFarmland(bot, radius) {
 
 async function run(state, task, options) {
   const bot = state.bot
-  const radius = Number(options.radius || 6)
+  const radius = Number(options.radius || 100)
   const idleMs = Number(options.idleMs || 800)
   
   // Give starter kit immediately on spawn
   let kitGiven = false
   let lastActivity = Date.now()
   let searchCount = 0
+  let lastStatus = 'starting'
+  let plantCount = 0
 
   while (!task.cancelled) {
     if (!bot.entity) {
@@ -95,12 +97,16 @@ async function run(state, task, options) {
     if (!kitGiven) {
       await checkStarterKit(bot)
       kitGiven = true
+      lastStatus = 'ready'
     }
 
     // Check if stuck in water and try to escape
     const inWater = bot.entity.isInWater
     if (inWater) {
-      bot.chat('Stuck in water! Attempting escape...')
+      if (lastStatus !== 'escaping_water') {
+        bot.chat('Stuck in water! Attempting escape...')
+        lastStatus = 'escaping_water'
+      }
       await escapeWater(bot)
       await sleep(500)
       continue
@@ -109,7 +115,10 @@ async function run(state, task, options) {
     // Look for ripe wheat
     const ripe = findRipeCrop(bot, radius)
     if (ripe) {
-      bot.chat(`Found ripe wheat at ${ripe.position.x}, ${ripe.position.y}, ${ripe.position.z}!`)
+      if (lastStatus !== 'harvesting') {
+        bot.chat(`Found ripe wheat! Starting harvest.`)
+        lastStatus = 'harvesting'
+      }
       try {
         await bot.dig(ripe)
         notifyHarvest(bot, 1)
@@ -125,14 +134,23 @@ async function run(state, task, options) {
     const plot = findFarmland(bot, radius)
     if (plot) {
       searchCount = 0
-      bot.chat(`Found empty farmland, planting wheat seeds...`)
       try {
-        // Make sure we have seeds
+        // Check resources BEFORE announcing
         const seedItem = bot.inventory.items().find(item => item.name === CROP.seed)
         if (!seedItem) {
-          bot.chat(`Out of wheat seeds! Need resupply!`)
+          if (lastStatus !== 'out_of_seeds') {
+            bot.chat(`Out of wheat seeds! Need resupply!`)
+            lastStatus = 'out_of_seeds'
+          }
           await sleep(idleMs * 5)
           continue
+        }
+        
+        // Announce planting status change only
+        if (lastStatus !== 'planting') {
+          bot.chat(`Found farmland, starting planting (${seedItem.count} seeds available)`)
+          lastStatus = 'planting'
+          plantCount = 0
         }
         
         // Equip seeds
@@ -140,21 +158,27 @@ async function run(state, task, options) {
         
         // Place seeds on farmland
         await bot.placeBlock(plot, new Vec3(0, 1, 0))
-        bot.chat(`Planted wheat seeds! Seeds remaining: ${seedItem.count - 1}`)
+        plantCount++
         lastActivity = Date.now()
+        
+        // Only announce every 10 plants
+        if (plantCount % 10 === 0) {
+          bot.chat(`Planted ${plantCount} wheat so far...`)
+        }
       } catch (error) {
         console.log(`[farmer-wheat] ${bot.username} planting failed:`, error.message)
-        bot.chat(`Failed to plant: ${error.message}`)
         await sleep(idleMs)
       }
       continue
     }
 
-    // Report when searching
+    // Report when searching (less frequently)
     searchCount++
-    if (searchCount % 10 === 0) {
+    if (searchCount === 30) {
       const timeSinceActivity = Math.floor((Date.now() - lastActivity) / 1000)
       bot.chat(`Searching for wheat work... (idle ${timeSinceActivity}s)`)
+      lastStatus = 'searching'
+      searchCount = 0
     }
 
     await sleep(idleMs)

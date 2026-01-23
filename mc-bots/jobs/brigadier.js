@@ -44,7 +44,8 @@ const SUPPLY_KITS = {
 }
 
 const SUPPLY_REQUESTS = [
-  /need (wheat|potato|beetroot|seeds|potatoes|beets)/i,
+  /need (wheat|potato|beetroot|seeds|potatoes|beets|resupply)/i,
+  /out of (wheat|potato|beetroot|seeds|potatoes|beets)/i,
   /ready \(need/i,
   /требую/i, // Russian: "I demand"
   /нужны/i   // Russian: "needed"
@@ -107,7 +108,7 @@ async function run(state, task, options) {
   
   const suppliedPlayers = new Set()
   const lastSupplyTime = new Map()
-  const MIN_SUPPLY_INTERVAL = 10000 // 10 seconds between supplies to same player
+  const MIN_SUPPLY_INTERVAL = 5000 // 5 seconds between supplies to same player
   
   // Listen for player join events
   bot.on('playerJoined', player => {
@@ -129,14 +130,14 @@ async function run(state, task, options) {
     // Check if message is a supply request
     if (!matchesSupplyRequest(message)) return
     
+    console.log(`[brigadier] Supply request detected: ${username}: ${message}`)
+    
     // Rate limiting - don't spam supplies
     const lastTime = lastSupplyTime.get(username) || 0
     if (Date.now() - lastTime < MIN_SUPPLY_INTERVAL) {
-      console.log(`[brigadier] Ignoring supply request from ${username} (rate limit)`)
+      console.log(`[brigadier] Ignoring supply request from ${username} (rate limit: ${Math.ceil((MIN_SUPPLY_INTERVAL - (Date.now() - lastTime)) / 1000)}s remaining)`)
       return
     }
-    
-    console.log(`[brigadier] Supply request detected: ${username}: ${message}`)
     
     // Try to detect job type from message
     const jobType = detectJobFromMessage(message, username)

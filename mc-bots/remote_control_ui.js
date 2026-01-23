@@ -7,6 +7,7 @@ const overlayEl = document.getElementById('viewer-overlay')
 const botSelectEl = document.getElementById('bot-select')
 const botStatusEl = document.getElementById('bot-status')
 const toggleControlsEl = document.getElementById('toggle-controls')
+const toggleViewerControlEl = document.getElementById('toggle-viewer-control')
 const lookSensitivityEl = document.getElementById('look-sensitivity')
 const jobSelectEl = document.getElementById('job-select')
 const jobOptionsEl = document.getElementById('job-options')
@@ -30,12 +31,14 @@ const layoutButton = document.getElementById('layout-button')
 const layoutPanel = document.getElementById('layout-panel')
 const hiddenCardsListEl = document.getElementById('hidden-cards-list')
 const gridEl = document.getElementById('card-grid')
+const tokenInputEl = document.getElementById('token')
 
 let ws
 let lastCommandId = 0
 
 let selectedBotId = ''
 let controlsEnabled = false
+let viewerControlEnabled = false
 let isLooking = false
 let lastMouseX = 0
 let lastMouseY = 0
@@ -115,7 +118,15 @@ function updateBotSelect(bots) {
 
 function setViewerSrc(viewerPort) {
   if (!viewerPort) return
-  const next = `http://${viewerHost}:${viewerPort}`
+  const url = new URL(`http://${viewerHost}:${viewerPort}`)
+  if (viewerControlEnabled) {
+    url.searchParams.set('control', 'true')
+    const token = tokenInputEl ? tokenInputEl.value.trim() : ''
+    if (token) {
+      url.searchParams.set('token', token)
+    }
+  }
+  const next = url.toString()
   if (viewerEl.dataset.src === next) return
   viewerEl.dataset.src = next
   viewerEl.src = next
@@ -402,6 +413,25 @@ toggleControlsEl.addEventListener('click', () => {
   overlayEl.classList.toggle('active', controlsEnabled)
   toggleControlsEl.textContent = controlsEnabled ? 'Disable' : 'Enable'
 })
+
+toggleViewerControlEl.addEventListener('click', () => {
+  viewerControlEnabled = !viewerControlEnabled
+  toggleViewerControlEl.textContent = viewerControlEnabled ? 'Disable' : 'Enable'
+  const active = botsCache.find(bot => bot.id === selectedBotId)
+  if (active && active.viewerPort) {
+    setViewerSrc(active.viewerPort)
+  }
+})
+
+if (tokenInputEl) {
+  tokenInputEl.addEventListener('change', () => {
+    if (!viewerControlEnabled) return
+    const active = botsCache.find(bot => bot.id === selectedBotId)
+    if (active && active.viewerPort) {
+      setViewerSrc(active.viewerPort)
+    }
+  })
+}
 
 lookSensitivityEl.addEventListener('change', event => {
   const value = Number(event.target.value)

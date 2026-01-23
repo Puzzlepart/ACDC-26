@@ -1,9 +1,13 @@
 const http = require('http')
 const fs = require('fs')
 const path = require('path')
+const EventEmitter = require('events')
+const compression = require('compression')
+const express = require('express')
+const socketIo = require('socket.io')
 const { WebSocketServer } = require('ws')
 const mineflayer = require('mineflayer')
-const mineflayerViewer = require('prismarine-viewer').mineflayer
+const { WorldView } = require('prismarine-viewer/viewer')
 const { Vec3 } = require('vec3')
 const JOBS = require('./jobs')
 
@@ -51,7 +55,7 @@ const CONFIG = {
     autoAssign: process.env.AUTO_ASSIGN_JOBS ? process.env.AUTO_ASSIGN_JOBS === 'true' : true,
     defaultJob: process.env.DEFAULT_JOB || '',
     assignments: parseJobAssignments(process.env.BOT_JOBS || ''),
-    priority: ['farmer', 'guard', 'scout'],
+    priority: ['farmer-wheat', 'farmer-potatoes', 'farmer-beets', 'farmer', 'guard', 'scout'],
     farmer: {
       crop: process.env.FARMER_CROP || 'wheat',
       radius: Number(process.env.FARMER_RADIUS || 6),
@@ -86,6 +90,47 @@ const UI_ASSETS = {
     type: 'text/javascript; charset=utf-8'
   }
 }
+
+const VIEWER_PUBLIC_DIR = path.join(
+  path.dirname(require.resolve('prismarine-viewer/package.json')),
+  'public'
+)
+const VIEWER_CONTROL_PATH = path.join(__dirname, 'remote_control_viewer.js')
+const VIEWER_CONTROL_JS = fs.existsSync(VIEWER_CONTROL_PATH)
+  ? fs.readFileSync(VIEWER_CONTROL_PATH, 'utf8')
+  : null
+const VIEWER_HTML = `<!DOCTYPE html>
+<html>
+  <head>
+    <title>Prismarine Viewer</title>
+    <style type="text/css">
+      html {
+        overflow: hidden;
+      }
+
+      html, body {
+        height: 100%;
+
+        margin: 0;
+        padding: 0;
+      }
+
+      canvas {
+        height: 100%;
+        width: 100%;
+        font-size: 0;
+
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript" src="/index.js"></script>
+    <script type="text/javascript" src="/viewer-control.js"></script>
+  </body>
+</html>
+`
 
 const bots = new Map()
 let nextViewerPort = CONFIG.viewerPort
@@ -137,6 +182,163 @@ function broadcast(payload) {
   }
 }
 
+function createViewerServer(state) {
+  const bot = state.bot
+  const app = express()
+  app.use(compression())
+
+  app.get('/', (req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end(VIEWER_HTML)
+  })
+
+  app.get('/viewer-control.js', (req, res) => {
+    if (!VIEWER_CONTROL_JS) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' })
+      res.end('viewer-control.js not found')
+      return
+    }
+    res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' })
+    res.end(VIEWER_CONTROL_JS)
+  })
+
+  app.use('/', express.static(VIEWER_PUBLIC_DIR))
+
+  const server = http.createServer(app)
+  const io = socketIo(server, { path: '/socket.io' })
+  const controlWss = new WebSocketServer({ server, path: '/control' })
+
+  const sockets = []
+  const primitives = {}
+
+  bot.viewer = new EventEmitter()
+
+  bot.viewer.erase = id => {
+    delete primitives[id]
+    for (const socket of sockets) {
+      socket.emit('primitive', { id })
+    }
+  }
+
+  bot.viewer.drawBoxGrid = (id, start, end, color = 'aqua') => {
+    primitives[id] = { type: 'boxgrid', id, start, end, color }
+    for (const socket of sockets) {
+      socket.emit('primitive', primitives[id])
+    }
+  }
+
+  bot.viewer.drawLine = (id, points, color = 0xff0000) => {
+    primitives[id] = { type: 'line', id, points, color }
+    for (const socket of sockets) {
+      socket.emit('primitive', primitives[id])
+    }
+  }
+
+  bot.viewer.drawPoints = (id, points, color = 0xff0000, size = 5) => {
+    primitives[id] = { type: 'points', id, points, color, size }
+    for (const socket of sockets) {
+      socket.emit('primitive', primitives[id])
+    }
+  }
+
+  io.on('connection', socket => {
+    socket.emit('version', bot.version)
+    sockets.push(socket)
+
+    const worldView = new WorldView(bot.world, 6, bot.entity.position, socket)
+    worldView.init(bot.entity.position)
+
+    worldView.on('blockClicked', (block, face, button) => {
+      bot.viewer.emit('blockClicked', block, face, button)
+    })
+
+    for (const id in primitives) {
+      socket.emit('primitive', primitives[id])
+    }
+
+    function botPosition() {
+      const packet = { pos: bot.entity.position, yaw: bot.entity.yaw, addMesh: true, pitch: bot.entity.pitch }
+      socket.emit('position', packet)
+      worldView.updatePosition(bot.entity.position)
+    }
+
+    bot.on('move', botPosition)
+    worldView.listenToBot(bot)
+    socket.on('disconnect', () => {
+      bot.removeListener('move', botPosition)
+      worldView.removeListenersFromBot(bot)
+      sockets.splice(sockets.indexOf(socket), 1)
+    })
+  })
+
+  controlWss.on('connection', (ws, req) => {
+    const url = new URL(req.url || '/', `http://${req.headers.host}`)
+    const token = url.searchParams.get('token') || ''
+    const remoteAddr = req.socket.remoteAddress
+
+    if (CONFIG.authToken) {
+      if (token !== CONFIG.authToken) {
+        ws.close(1008, 'Unauthorized')
+        return
+      }
+    } else if (!isLocalAddress(remoteAddr)) {
+      ws.close(1008, 'Local only')
+      return
+    }
+
+    ws.on('message', async message => {
+      let data
+      try {
+        data = JSON.parse(message.toString())
+      } catch (error) {
+        return
+      }
+
+      if (!data || !data.type) return
+
+      if (data.type === 'control') {
+        const { control, value } = data
+        if (!control) return
+        stopJob(state)
+        bot.setControlState(control, Boolean(value))
+        return
+      }
+
+      if (data.type === 'look') {
+        const { dx, dy, sensitivity, yaw, pitch } = data
+        if (!bot.entity) return
+        stopJob(state)
+        if (Number.isFinite(yaw) && Number.isFinite(pitch)) {
+          await bot.look(yaw, clamp(pitch, -1.55, 1.55), true)
+          return
+        }
+        if (!Number.isFinite(dx) || !Number.isFinite(dy)) return
+        const scale = Number.isFinite(sensitivity) ? Number(sensitivity) : CONFIG.lookSensitivity
+        const nextYaw = bot.entity.yaw - dx * scale
+        const nextPitch = clamp(bot.entity.pitch - dy * scale, -1.55, 1.55)
+        await bot.look(nextYaw, nextPitch, true)
+      }
+    })
+
+    ws.on('close', () => {
+      stopMotion(state)
+    })
+  })
+
+  server.listen(state.viewerPort, () => {
+    console.log(`[remote-control] ${state.id} viewer on http://localhost:${state.viewerPort}`)
+    console.log(`[remote-control] ${state.id} control on http://localhost:${state.viewerPort}/?control=true`)
+  })
+
+  return {
+    close: () => {
+      controlWss.close()
+      io.close()
+      server.close()
+    }
+  }
+}
+
 function stopMotion(state) {
   if (!state || !state.bot || !state.bot.entity) return
   state.bot.setControlState('forward', false)
@@ -145,6 +347,7 @@ function stopMotion(state) {
   state.bot.setControlState('right', false)
   state.bot.setControlState('jump', false)
   state.bot.setControlState('sprint', false)
+  state.bot.setControlState('sneak', false)
 }
 
 function sleep(ms) {
@@ -508,10 +711,9 @@ function spawnBot({ username, host, port }) {
   if (!defaultBotId) defaultBotId = id
 
   bot.once('spawn', () => {
-    mineflayerViewer(bot, { port: viewerPort, firstPerson: true })
+    state.viewerServer = createViewerServer(state)
     startTelemetry()
     broadcastBotList()
-    console.log(`[remote-control] ${id} viewer on http://localhost:${viewerPort}`)
     if (state.assignedJob && JOBS[state.assignedJob]) {
       try {
         startJob(state, state.assignedJob)

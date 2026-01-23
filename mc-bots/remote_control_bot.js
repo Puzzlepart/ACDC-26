@@ -11,6 +11,10 @@ const { WorldView } = require('prismarine-viewer/viewer')
 const { Vec3 } = require('vec3')
 const JOBS = require('./jobs')
 
+// Load pathfinder for bot navigation
+const pathfinder = require('mineflayer-pathfinder').pathfinder
+const { goals } = require('mineflayer-pathfinder')
+
 let mindcraftClientAvailable = true
 let socketIoClient = null
 try {
@@ -693,7 +697,11 @@ function getState(botId) {
   throw new Error('No bots available')
 }
 
-function spawnBot({ username, host, port }) {
+// Track last spawn position for spacing
+let lastSpawnPosition = null
+let spawnOffsetAxis = 'x' // alternate between 'x' and 'z'
+
+function spawnBot({ username, host, port, jobType }) {
   // Auto-generate name if not provided
   const id = username || generateComradeName()
   if (bots.has(id)) throw new Error(`Bot already exists: ${id}`)
@@ -707,6 +715,9 @@ function spawnBot({ username, host, port }) {
     host,
     port
   })
+
+  // Load pathfinder plugin for navigation
+  bot.loadPlugin(pathfinder)
 
   const state = {
     id,
@@ -727,6 +738,15 @@ function spawnBot({ username, host, port }) {
     startTelemetry()
     broadcastBotList()
     bot.chat(`Comrade ${id} reporting for duty!`)
+    
+    // Store spawn position for bulk spawn spacing
+    lastSpawnPosition = bot.entity.position.clone()
+    
+    // If jobType was specified during spawn, assign it
+    if (jobType && JOBS[jobType]) {
+      state.assignedJob = jobType
+    }
+    
     if (state.assignedJob && JOBS[state.assignedJob]) {
       try {
         startJob(state, state.assignedJob)
@@ -998,11 +1018,93 @@ wss.on('connection', (ws, req) => {
       }
 
       if (type === 'spawn') {
-        const { username } = args
+        const { username, jobType } = args
         // Username is now optional - will auto-generate if not provided
         send(ws, { type: 'ack', id })
-        const state = spawnBot({ username, host: CONFIG.host, port: CONFIG.port })
+        const state = spawnBot({ username, host: CONFIG.host, port: CONFIG.port, jobType })
         send(ws, { type: 'done', id, payload: { botId: state.id, viewerPort: state.viewerPort } })
+        broadcastBotList()
+        return
+      }
+
+      if (type === 'bulk-spawn') {
+        const { jobType, count } = args
+        if (!jobType || !JOBS[jobType]) {
+          throw new Error(`Invalid job type: ${jobType}`)
+        }
+        if (!count || count < 1 || count > 10) {
+          throw new Error(`Invalid count: ${count} (must be 1-10)`)
+        }
+        
+        send(ws, { type: 'ack', id })
+        console.log(`[remote-control] Bulk spawning ${count} ${jobType} farmers...`)
+        
+        const spawnedBots = []
+        
+        for (let i = 0; i < count; i++) {
+          // Generate unique name
+          const username = generateComradeName()
+          
+          // Spawn bot with job type
+          const state = spawnBot({ 
+            username, 
+            host: CONFIG.host, 
+            port: CONFIG.port,
+            jobType 
+          })
+          
+          spawnedBots.push({
+            botId: state.id,
+            viewerPort: state.viewerPort,
+            jobType
+          })
+          
+          // Wait for bot to spawn and then move it
+          state.bot.once('spawn', async () => {
+            if (lastSpawnPosition && i > 0) {
+              // Calculate offset position (10 blocks apart)
+              const offset = 10 * i
+              const targetPos = lastSpawnPosition.clone()
+              
+              // Alternate between X and Z axis for spacing
+              if (spawnOffsetAxis === 'x') {
+                targetPos.x += offset
+              } else {
+                targetPos.z += offset
+              }
+              
+              console.log(`[remote-control] Moving ${username} to offset position: ${targetPos.x.toFixed(1)}, ${targetPos.y.toFixed(1)}, ${targetPos.z.toFixed(1)}`)
+              
+              // Use pathfinder to move to position
+              try {
+                if (state.bot.pathfinder) {
+                  const goal = new goals.GoalNear(targetPos.x, targetPos.y, targetPos.z, 1)
+                  await state.bot.pathfinder.goto(goal)
+                  console.log(`[remote-control] ${username} reached offset position`)
+                }
+              } catch (error) {
+                console.error(`[remote-control] ${username} movement failed:`, error.message)
+              }
+            }
+            
+            // Toggle axis for next spawn
+            if (i === count - 1) {
+              spawnOffsetAxis = spawnOffsetAxis === 'x' ? 'z' : 'x'
+            }
+          })
+          
+          // Small delay between spawns
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+        
+        send(ws, { 
+          type: 'done', 
+          id, 
+          payload: { 
+            count: spawnedBots.length,
+            bots: spawnedBots 
+          } 
+        })
         broadcastBotList()
         return
       }

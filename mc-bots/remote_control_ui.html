@@ -56,6 +56,19 @@
           <label>Spawn Bot (username)</label>
           <input id="spawn-name" placeholder="bot_username" />
           <button id="spawn">Spawn</button>
+          
+          <hr style="margin: 16px 0; border: none; border-top: 1px solid #2a2f3d;" />
+          
+          <label>Bulk Spawn Farmers</label>
+          <select id="bulk-job-type">
+            <option value="farmer-wheat">Wheat Farmers</option>
+            <option value="farmer-potatoes">Potato Farmers</option>
+            <option value="farmer-beets">Beet Farmers</option>
+          </select>
+          <label>Count</label>
+          <input id="bulk-count" type="number" min="1" max="10" value="3" />
+          <button id="bulk-spawn">Bulk Spawn</button>
+          
           <p id="bot-status">No bots connected</p>
         </div>
       </div>

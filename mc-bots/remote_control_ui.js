@@ -316,9 +316,23 @@ botSelectEl.addEventListener('change', event => {
 
 document.getElementById('spawn').addEventListener('click', () => {
   const username = document.getElementById('spawn-name').value.trim()
-  // Username is optional now - server will auto-generate if empty
+  logStatus('Spawning bot...')
   send('spawn', { username: username || undefined }, { includeBotId: false })
   document.getElementById('spawn-name').value = ''
+  document.getElementById('spawn-name').placeholder = suggestComradeName()
+})
+
+document.getElementById('bulk-spawn').addEventListener('click', () => {
+  const jobType = document.getElementById('bulk-job-type').value
+  const count = parseInt(document.getElementById('bulk-count').value) || 3
+  
+  if (count < 1 || count > 10) {
+    logStatus('Error: Count must be between 1 and 10')
+    return
+  }
+  
+  logStatus(`Bulk spawning ${count} ${jobType} farmers...`)
+  send('bulk-spawn', { jobType, count }, { includeBotId: false })
 })
 
 document.getElementById('move').addEventListener('click', () => {

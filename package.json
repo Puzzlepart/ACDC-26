@@ -1,7 +1,7 @@
 {
   "name": "acdc-26",
   "version": "1.0.0",
-  "private": true,
+  "private": false,
   "description": "CrayCon Creepers ACDC-26 monorepo",
   "workspaces": [
     "web/*"
@@ -23,6 +23,7 @@
   "keywords": [
     "acdc26",
     "hackathon",
+    "minecraft",
     "ccc",
     "monorepo",
     "sharepoint",
@@ -31,7 +32,6 @@
   "contributors": [
     "damsleth",
     "siifux",
-    "remi749",
     "jenunn"
   ],
   "license": "WTFPL",

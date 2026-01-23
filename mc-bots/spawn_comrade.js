@@ -4,10 +4,8 @@ const randomNum = Math.floor(Math.random() * 1000);
 const comradeName = `comrade_${randomNum}`;
 
 const bot = mineflayer.createBot({
-  host: 'shell.craycon.no',
-  username: comradeName,
-  auth: 'offline',
-  version: '1.21.8'
+  host: 'mc.craycon.no',
+  username: comradeName
 })
 
 bot.on('chat', (username, message) => {

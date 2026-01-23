@@ -76,3 +76,4 @@ wrangler.toml.local
 _doc
 **/bot-profiles/*.json
 *.patch
+./claude

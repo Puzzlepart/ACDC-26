@@ -1,6 +1,6 @@
 {
     "name": "andy",
 
-    "model": "gpt-5"
+    "model": "claude-4-5-sonnet-latest"
 
 }

@@ -701,7 +701,7 @@ function getState(botId) {
 let lastSpawnPosition = null
 let spawnOffsetAxis = 'x' // alternate between 'x' and 'z'
 
-function spawnBot({ username, host, port, jobType }) {
+function spawnBot({ username, host, port, jobType, autoStartJob = true }) {
   // Auto-generate name if not provided
   const id = username || generateComradeName()
   if (bots.has(id)) throw new Error(`Bot already exists: ${id}`)
@@ -727,7 +727,8 @@ function spawnBot({ username, host, port, jobType }) {
     jobName: null,
     jobOptions: null,
     assignedJob: resolveInitialJob(id, index),
-    deathCount: 0
+    deathCount: 0,
+    autoStartJob  // Store for later use
   }
 
   bots.set(id, state)
@@ -740,14 +741,17 @@ function spawnBot({ username, host, port, jobType }) {
     bot.chat(`Comrade ${id} reporting for duty!`)
     
     // Store spawn position for bulk spawn spacing
-    lastSpawnPosition = bot.entity.position.clone()
+    if (!lastSpawnPosition) {
+      lastSpawnPosition = bot.entity.position.clone()
+    }
     
     // If jobType was specified during spawn, assign it
     if (jobType && JOBS[jobType]) {
       state.assignedJob = jobType
     }
     
-    if (state.assignedJob && JOBS[state.assignedJob]) {
+    // Only auto-start job if autoStartJob is true (default behavior)
+    if (autoStartJob && state.assignedJob && JOBS[state.assignedJob]) {
       try {
         startJob(state, state.assignedJob)
       } catch (error) {
@@ -785,7 +789,17 @@ function spawnBot({ username, host, port, jobType }) {
     stopMotion(state)
     state.jobName = null
     state.jobOptions = null
+    state.disconnectTime = Date.now()
     broadcastBotList()
+    
+    // Remove bot after 30 seconds if still disconnected
+    setTimeout(() => {
+      if (bots.has(id) && bots.get(id).disconnectTime) {
+        console.log(`[remote-control] Removing disconnected bot: ${id}`)
+        bots.delete(id)
+        broadcastBotList()
+      }
+    }, 30000)
   })
 
   bot.on('error', err => {
@@ -1045,56 +1059,89 @@ wss.on('connection', (ws, req) => {
           // Generate unique name
           const username = generateComradeName()
           
-          // Spawn bot with job type
+          // Calculate target position for this bot (capture i in closure)
+          const botIndex = i
+          const shouldMove = botIndex > 0 && lastSpawnPosition
+          let targetPos = null
+          
+          if (shouldMove) {
+            const offset = 10 * botIndex
+            targetPos = lastSpawnPosition.clone()
+            
+            // Alternate between X and Z axis for spacing
+            if (spawnOffsetAxis === 'x') {
+              targetPos.x += offset
+            } else {
+              targetPos.z += offset
+            }
+          }
+          
+          // Spawn bot with job type (but don't auto-start job yet)
           const state = spawnBot({ 
             username, 
             host: CONFIG.host, 
             port: CONFIG.port,
-            jobType 
+            jobType,
+            autoStartJob: false  // We'll start manually after positioning
           })
           
           spawnedBots.push({
             botId: state.id,
             viewerPort: state.viewerPort,
-            jobType
+            jobType,
+            targetPosition: targetPos
           })
           
-          // Wait for bot to spawn and then move it
+          // Wait for bot to spawn, then move it, then start job
           state.bot.once('spawn', async () => {
-            if (lastSpawnPosition && i > 0) {
-              // Calculate offset position (10 blocks apart)
-              const offset = 10 * i
-              const targetPos = lastSpawnPosition.clone()
-              
-              // Alternate between X and Z axis for spacing
-              if (spawnOffsetAxis === 'x') {
-                targetPos.x += offset
-              } else {
-                targetPos.z += offset
+            try {
+              // Store spawn position for next bot
+              if (!lastSpawnPosition || botIndex === 0) {
+                lastSpawnPosition = state.bot.entity.position.clone()
+                console.log(`[remote-control] Base spawn position: ${lastSpawnPosition.x.toFixed(1)}, ${lastSpawnPosition.y.toFixed(1)}, ${lastSpawnPosition.z.toFixed(1)}`)
               }
               
-              console.log(`[remote-control] Moving ${username} to offset position: ${targetPos.x.toFixed(1)}, ${targetPos.y.toFixed(1)}, ${targetPos.z.toFixed(1)}`)
+              // Move bot to offset position if needed
+              if (shouldMove && targetPos && state.bot.pathfinder) {
+                console.log(`[remote-control] ${username} moving to: X=${targetPos.x.toFixed(1)}, Z=${targetPos.z.toFixed(1)} (${botIndex * 10} blocks away)`)
+                
+                const goal = new goals.GoalNear(targetPos.x, targetPos.y, targetPos.z, 1)
+                await state.bot.pathfinder.goto(goal)
+                
+                console.log(`[remote-control] ${username} reached position`)
+              }
               
-              // Use pathfinder to move to position
-              try {
-                if (state.bot.pathfinder) {
-                  const goal = new goals.GoalNear(targetPos.x, targetPos.y, targetPos.z, 1)
-                  await state.bot.pathfinder.goto(goal)
-                  console.log(`[remote-control] ${username} reached offset position`)
+              // Now start the job
+              if (state.assignedJob && JOBS[state.assignedJob]) {
+                await new Promise(resolve => setTimeout(resolve, 500)) // Brief pause
+                try {
+                  startJob(state, state.assignedJob)
+                  console.log(`[remote-control] ${username} started ${state.assignedJob}`)
+                } catch (error) {
+                  console.error(`[remote-control] ${username} job start failed:`, error)
                 }
-              } catch (error) {
-                console.error(`[remote-control] ${username} movement failed:`, error.message)
+              }
+            } catch (error) {
+              console.error(`[remote-control] ${username} positioning failed:`, error.message)
+              // Start job anyway, even if movement failed
+              if (state.assignedJob && JOBS[state.assignedJob]) {
+                try {
+                  startJob(state, state.assignedJob)
+                } catch (jobError) {
+                  console.error(`[remote-control] ${username} job start failed:`, jobError)
+                }
               }
             }
             
-            // Toggle axis for next spawn
-            if (i === count - 1) {
+            // Toggle axis after last bot
+            if (botIndex === count - 1) {
               spawnOffsetAxis = spawnOffsetAxis === 'x' ? 'z' : 'x'
+              console.log(`[remote-control] Next bulk spawn will use ${spawnOffsetAxis.toUpperCase()} axis`)
             }
           })
           
-          // Small delay between spawns
-          await new Promise(resolve => setTimeout(resolve, 500))
+          // Delay between spawns to avoid server overload
+          await new Promise(resolve => setTimeout(resolve, 2000))
         }
         
         send(ws, { 

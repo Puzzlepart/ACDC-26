@@ -104,13 +104,17 @@ function send(type, args = {}, options = {}) {
 
 function updateBotSelect(bots) {
   botsCache = bots || []
+  
+  // Filter out offline/undefined bots
+  const activeBots = botsCache.filter(bot => bot.inGame && bot.id && bot.id !== 'undefined')
+  
   botSelectEl.innerHTML = ''
   jobBotSelectEl.innerHTML = ''
   
-  if (!botsCache || botsCache.length === 0) {
+  if (!activeBots || activeBots.length === 0) {
     const option = document.createElement('option')
     option.value = ''
-    option.textContent = 'No bots'
+    option.textContent = 'No active bots'
     botSelectEl.appendChild(option)
     jobBotSelectEl.appendChild(option.cloneNode(true))
     selectedBotId = ''
@@ -118,27 +122,27 @@ function updateBotSelect(bots) {
     return
   }
   
-  botsCache.forEach(bot => {
+  activeBots.forEach(bot => {
     const option = document.createElement('option')
     option.value = bot.id
     const jobLabel = bot.job ? ` • ${bot.job}` : ''
-    option.textContent = `${bot.name} (${bot.inGame ? 'online' : 'offline'})${jobLabel}`
+    option.textContent = `${bot.name} (online)${jobLabel}`
     botSelectEl.appendChild(option)
     jobBotSelectEl.appendChild(option.cloneNode(true))
   })
   
-  if (!selectedBotId || !botsCache.find(bot => bot.id === selectedBotId)) {
-    selectedBotId = botsCache[0].id
+  if (!selectedBotId || !activeBots.find(bot => bot.id === selectedBotId)) {
+    selectedBotId = activeBots[0].id
   }
   
   botSelectEl.value = selectedBotId
   
   // Default job bot selector to last spawned bot
-  if (botsCache.length > 0) {
-    jobBotSelectEl.value = botsCache[botsCache.length - 1].id
+  if (activeBots.length > 0) {
+    jobBotSelectEl.value = activeBots[activeBots.length - 1].id
   }
   
-  const active = botsCache.find(bot => bot.id === selectedBotId)
+  const active = activeBots.find(bot => bot.id === selectedBotId)
   botStatusEl.textContent = active ? `Active: ${active.name}` : 'Select a bot'
   if (active && active.viewerPort) {
     setViewerSrc(active.viewerPort)

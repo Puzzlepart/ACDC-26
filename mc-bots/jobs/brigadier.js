@@ -121,68 +121,38 @@ async function run(state, task, options) {
   })
   
   // Listen for chat messages requesting supplies
-  // Use 'message' event instead of 'chat' for more reliable detection
-  bot.on('message', async (jsonMsg) => {
+  // Use 'chat' event which provides username and message directly
+  bot.on('chat', async (username, message) => {
     try {
-      const message = jsonMsg.toString()
-      
-      // Try to extract username from message
-      // Format is usually: "<username> message" or "username: message"
-      let username = null
-      let content = message
-      
-      // Pattern 1: <username> message
-      const match1 = message.match(/^<([^>]+)>\s*(.+)$/)
-      if (match1) {
-        username = match1[1]
-        content = match1[2]
-      }
-      
-      // Pattern 2: username: message
-      const match2 = message.match(/^([^:]+):\s*(.+)$/)
-      if (!username && match2) {
-        username = match2[1]
-        content = match2[2]
-      }
-      
-      // Pattern 3: No prefix, just message (could be system or whisper)
-      if (!username) {
-        // Check if it's just a plain message
-        username = 'unknown'
-        content = message
-      }
-      
       // Debug: log all chat messages
-      console.log(`[brigadier] Message received: [${username}]: "${content}"`)
+      console.log(`[brigadier] Chat: <${username}> ${message}`)
       
       // Ignore own messages
       if (username === bot.username) {
-        console.log(`[brigadier] Ignoring own message`)
         return
       }
       
       // Ignore system messages
-      if (username === '@@SYSTEM@@') {
-        console.log(`[brigadier] Ignoring system message`)
+      if (!username || username === '@@SYSTEM@@') {
         return
       }
       
       // Check if message is a supply request
-      if (!matchesSupplyRequest(content)) {
+      if (!matchesSupplyRequest(message)) {
         return
       }
       
-      console.log(`[brigadier] ⚠️ SUPPLY REQUEST DETECTED: ${username}: ${content}`)
+      console.log(`[brigadier] ⚠️ SUPPLY REQUEST: <${username}> ${message}`)
       
       // Rate limiting - don't spam supplies
       const lastTime = lastSupplyTime.get(username) || 0
       if (Date.now() - lastTime < MIN_SUPPLY_INTERVAL) {
-        console.log(`[brigadier] Ignoring supply request from ${username} (rate limit: ${Math.ceil((MIN_SUPPLY_INTERVAL - (Date.now() - lastTime)) / 1000)}s remaining)`)
+        console.log(`[brigadier] Rate limit: ${username} (${Math.ceil((MIN_SUPPLY_INTERVAL - (Date.now() - lastTime)) / 1000)}s remaining)`)
         return
       }
       
       // Try to detect job type from message
-      const jobType = detectJobFromMessage(content, username)
+      const jobType = detectJobFromMessage(message, username)
       
       if (!jobType) {
         console.log(`[brigadier] Could not detect job type for ${username}`)
@@ -190,14 +160,14 @@ async function run(state, task, options) {
         return
       }
       
-      console.log(`[brigadier] Detected job type: ${jobType} for ${username}`)
+      console.log(`[brigadier] Supplying ${jobType} kit to ${username}`)
       
       // Distribute supplies
       lastSupplyTime.set(username, Date.now())
       await distributeSupplies(bot, username, jobType)
       suppliedPlayers.add(username)
     } catch (error) {
-      console.error(`[brigadier] Error processing message:`, error)
+      console.error(`[brigadier] Error processing chat:`, error)
     }
   })
   

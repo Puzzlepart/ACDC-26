@@ -4,621 +4,217 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CCCPCCC Control Console</title>
-  <style>
-    * { box-sizing: border-box; }
-    :root {
-      --red: #b31217;
-      --red-dark: #6d0b10;
-      --gold: #f3c04a;
-      --panel: #151821;
-      --panel-2: #0f1219;
-      --text: #f2f2f4;
-      --muted: #c1c6d3;
-      --border: #2a2f3b;
-    }
-    body {
-      font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
-      margin: 0;
-      background: radial-gradient(1200px 600px at 10% -10%, rgba(179, 18, 23, 0.25), transparent 60%),
-        radial-gradient(800px 500px at 90% 10%, rgba(243, 192, 74, 0.18), transparent 60%),
-        #0b0d12;
-      color: var(--text);
-    }
-    .shell { max-width: 1340px; margin: 0 auto; padding: 14px; }
-    header { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid #3a1b1b; border-left: 4px solid var(--red); background: linear-gradient(90deg, rgba(179, 18, 23, 0.18), transparent); }
-    h1 { font-size: 18px; margin: 0; text-transform: uppercase; letter-spacing: 1.2px; color: var(--gold); word-break: break-word; }
-    .subtitle { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-    .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-    .card { background: linear-gradient(160deg, var(--panel), var(--panel-2)); padding: 10px; border-radius: 10px; border: 1px solid #2c313d; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2); }
-    h3 { margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gold); }
-    label { display: block; font-size: 11px; margin-bottom: 4px; color: var(--muted); }
-    input, button, select { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: #0d1016; color: var(--text); }
-    button { cursor: pointer; background: linear-gradient(180deg, var(--red), var(--red-dark)); border-color: #7b0b12; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; margin: .3rem 0; }
-    button.secondary { background: #2a2f3b; border-color: #2a2f3b; text-transform: none; font-weight: 500; }
-    .row { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
-    details { margin-top: 8px; border: 1px solid #2a2f3b; border-radius: 8px; background: rgba(8, 10, 14, 0.6); }
-    summary { list-style: none; cursor: pointer; padding: 8px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gold); }
-    summary::-webkit-details-marker { display: none; }
-    .accordion-body { padding: 0 10px 10px 10px; display: grid; gap: 8px; }
-    pre { background: #0a0c10; padding: 8px; border-radius: 6px; height: 120px; overflow: auto; font-size: 12px; }
-    iframe { width: 100%; height: 320px; border: 0; border-radius: 10px; background: #0b0d11; }
-    .viewer-wrap { position: relative; }
-    .viewer-overlay { position: absolute; inset: 0; border-radius: 10px; pointer-events: none; }
-    .viewer-overlay.active { pointer-events: auto; cursor: grab; outline: 2px solid rgba(243, 192, 74, 0.6); }
-    .viewer-overlay.active.is-looking { cursor: grabbing; }
-    .viewer-hint { position: absolute; left: 12px; bottom: 12px; background: rgba(15, 17, 21, 0.85); border: 1px solid #2a2f3b; padding: 8px 10px; border-radius: 8px; font-size: 11px; color: #cbd2e0; max-width: 320px; opacity: 0; transition: opacity 0.2s ease; }
-    .viewer-overlay.active .viewer-hint { opacity: 1; }
-  </style>
+  <link rel="stylesheet" href="/remote_control_ui.css" />
 </head>
 <body>
   <div class="shell">
-    <header>
-      <h1>CrayCon Creepers Central Production Command and Control Center (C.C.C.P.C.C.C)</h1>
-      <div class="subtitle">Authorized Operators Only • Productivity Above All</div>
+    <header class="main-header">
+      <div class="title-block">
+        <h1>CrayCon Creepers Central Production Command and Control Center (CCCPCCC, lol)</h1>
+        <div class="subtitle">Authorized Operators Only • Productivity Above All</div>
+      </div>
+      <div class="header-actions">
+        <button id="layout-button" class="icon-button" aria-expanded="false" aria-controls="layout-panel" title="Layout">
+          &#9881;
+        </button>
+        <div id="layout-panel" class="panel is-hidden">
+          <div class="panel-title">Add Cards</div>
+          <div id="hidden-cards-list" class="panel-list"></div>
+        </div>
+      </div>
     </header>
 
-  <div class="grid">
-    <div class="card">
-      <label>Auth Token (optional for localhost)</label>
-      <input id="token" placeholder="BOT_AUTH_TOKEN" />
-      <button id="connect">Connect</button>
-      <button id="disconnect" class="secondary">Disconnect</button>
-      <p id="status">Disconnected</p>
-    </div>
-
-    <div class="card">
-      <h3>Bots</h3>
-      <label>Active Bot</label>
-      <select id="bot-select"></select>
-      <label>Spawn Bot (username)</label>
-      <input id="spawn-name" placeholder="bot_username" />
-      <button id="spawn">Spawn</button>
-      <p id="bot-status">No bots connected</p>
-    </div>
-
-    <div class="card">
-      <h3>Jobs</h3>
-      <label>Job</label>
-      <select id="job-select"></select>
-      <label>Job Options (JSON)</label>
-      <input id="job-options" placeholder='{"radius":8}' />
-      <button id="job-start">Start Job</button>
-      <button id="job-stop" class="secondary">Stop Job</button>
-    </div>
-
-    <div class="card">
-      <h3>Move To</h3>
-      <div class="row">
-        <div><label>X</label><input id="move-x" value="0" /></div>
-        <div><label>Y</label><input id="move-y" value="0" /></div>
-        <div><label>Z</label><input id="move-z" value="0" /></div>
-      </div>
-      <button id="move">Move</button>
-    </div>
-
-    <div class="card">
-      <h3>Follow Player</h3>
-      <label>Player Name</label>
-      <input id="follow-name" placeholder="Player name" />
-      <label>Distance</label>
-      <input id="follow-distance" value="3" />
-      <button id="follow">Follow</button>
-      <button id="stop" class="secondary">Stop</button>
-    </div>
-
-    <div class="card">
-      <h3>Telemetry</h3>
-      <pre id="telemetry">Waiting...</pre>
-    </div>
-
-    <div class="card">
-      <h3>Viewer Controls</h3>
-      <label>Enable Viewer Control Layer</label>
-      <button id="toggle-controls" class="secondary">Enable</button>
-      <label>Look Sensitivity</label>
-      <input id="look-sensitivity" value="0.0025" />
-      <p style="font-size: 12px; color: #aab0c0;">
-        Right click + drag to look. WASD to move, Space to jump, Shift to sprint.
-      </p>
-    </div>
-
-    <div class="card">
-      <h3>Mindcraft LLM</h3>
-      <label>MindServer Host</label>
-      <input id="mindcraft-host" value="localhost" />
-      <label>MindServer Port</label>
-      <input id="mindcraft-port" value="8080" />
-      <button id="mindcraft-connect" class="secondary">Connect</button>
-      <label>Profile</label>
-      <select id="mindcraft-profile"></select>
-      <button id="mindcraft-create">Create LLM Bot</button>
-      <details>
-        <summary>Advanced</summary>
-        <div class="accordion-body">
-          <label>Agent Name</label>
-          <input id="mindcraft-name" placeholder="llm_bot" />
-          <label>Auth</label>
-          <select id="mindcraft-auth">
-            <option value="offline">offline</option>
-            <option value="microsoft">microsoft</option>
-          </select>
-          <label>Base Profile</label>
-          <select id="mindcraft-base">
-            <option value="survival">survival</option>
-            <option value="assistant">assistant</option>
-            <option value="creative">creative</option>
-            <option value="god_mode">god_mode</option>
-          </select>
-          <label>Init Message</label>
-          <input id="mindcraft-init" value="Respond with hello world and your name" />
-          <label>Existing Agents</label>
-          <select id="mindcraft-agent"></select>
-          <div class="row">
-            <button id="mindcraft-start">Start</button>
-            <button id="mindcraft-stop" class="secondary">Stop</button>
-            <button id="mindcraft-destroy" class="secondary">Destroy</button>
+    <div id="card-grid" class="grid">
+      <div class="card" data-card-id="connection" data-card-title="Connection">
+        <div class="card-head" draggable="true">
+          <h3>Connection</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
           </div>
-          <p id="mindcraft-status" style="font-size: 12px; color: #aab0c0;">Mindcraft: disconnected</p>
         </div>
-      </details>
-    </div>
-  </div>
+        <div class="card-body">
+          <label>Auth Token (optional for localhost)</label>
+          <input id="token" placeholder="BOT_AUTH_TOKEN" />
+          <button id="connect">Connect</button>
+          <button id="disconnect" class="secondary">Disconnect</button>
+          <p id="status">Disconnected</p>
+        </div>
+      </div>
 
-  <div class="card" style="margin-top: 12px;">
-    <h3>Viewer</h3>
-    <div class="viewer-wrap">
-      <iframe id="viewer" title="Prismarine Viewer"></iframe>
-      <div id="viewer-overlay" class="viewer-overlay">
-        <div class="viewer-hint">Viewer controls enabled. Right click + drag to look. WASD/Space/Shift to move.</div>
+      <div class="card" data-card-id="bots" data-card-title="Bots">
+        <div class="card-head" draggable="true">
+          <h3>Bots</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <label>Active Bot</label>
+          <select id="bot-select"></select>
+          <label>Spawn Bot (username)</label>
+          <input id="spawn-name" placeholder="bot_username" />
+          <button id="spawn">Spawn</button>
+          <p id="bot-status">No bots connected</p>
+        </div>
+      </div>
+
+      <div class="card" data-card-id="jobs" data-card-title="Jobs">
+        <div class="card-head" draggable="true">
+          <h3>Jobs</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <label>Job</label>
+          <select id="job-select"></select>
+          <label>Job Options (JSON)</label>
+          <input id="job-options" placeholder='{"radius":8}' />
+          <button id="job-start">Start Job</button>
+          <button id="job-stop" class="secondary">Stop Job</button>
+        </div>
+      </div>
+
+      <div class="card" data-card-id="move" data-card-title="Move To">
+        <div class="card-head" draggable="true">
+          <h3>Move To</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div><label>X</label><input id="move-x" value="0" /></div>
+            <div><label>Y</label><input id="move-y" value="0" /></div>
+            <div><label>Z</label><input id="move-z" value="0" /></div>
+          </div>
+          <button id="move">Move</button>
+        </div>
+      </div>
+
+      <div class="card" data-card-id="follow" data-card-title="Follow Player">
+        <div class="card-head" draggable="true">
+          <h3>Follow Player</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <label>Player Name</label>
+          <input id="follow-name" placeholder="Player name" />
+          <label>Distance</label>
+          <input id="follow-distance" value="3" />
+          <button id="follow">Follow</button>
+          <button id="stop" class="secondary">Stop</button>
+        </div>
+      </div>
+
+      <div class="card" data-card-id="telemetry" data-card-title="Telemetry">
+        <div class="card-head" draggable="true">
+          <h3>Telemetry</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <pre id="telemetry">Waiting...</pre>
+        </div>
+      </div>
+
+      <div class="card" data-card-id="viewer-controls" data-card-title="Viewer Controls">
+        <div class="card-head" draggable="true">
+          <h3>Viewer Controls</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <label>Enable Viewer Control Layer</label>
+          <button id="toggle-controls" class="secondary">Enable</button>
+          <label>Look Sensitivity</label>
+          <input id="look-sensitivity" value="0.0025" />
+          <p style="font-size: 12px; color: #aab0c0;">
+            Right click + drag to look. WASD to move, Space to jump, Shift to sprint.
+          </p>
+        </div>
+      </div>
+
+      <div class="card" data-card-id="mindcraft" data-card-title="Mindcraft LLM">
+        <div class="card-head" draggable="true">
+          <h3>Mindcraft LLM</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <label>MindServer Host</label>
+          <input id="mindcraft-host" value="localhost" />
+          <label>MindServer Port</label>
+          <input id="mindcraft-port" value="8080" />
+          <button id="mindcraft-connect" class="secondary">Connect</button>
+          <label>Profile</label>
+          <select id="mindcraft-profile"></select>
+          <button id="mindcraft-create">Create LLM Bot</button>
+          <details>
+            <summary>Advanced</summary>
+            <div class="accordion-body">
+              <label>Agent Name</label>
+              <input id="mindcraft-name" placeholder="llm_bot" />
+              <label>Auth</label>
+              <select id="mindcraft-auth">
+                <option value="offline">offline</option>
+                <option value="microsoft">microsoft</option>
+              </select>
+              <label>Base Profile</label>
+              <select id="mindcraft-base">
+                <option value="survival">survival</option>
+                <option value="assistant">assistant</option>
+                <option value="creative">creative</option>
+                <option value="god_mode">god_mode</option>
+              </select>
+              <label>Init Message</label>
+              <input id="mindcraft-init" value="Respond with hello world and your name" />
+              <label>Existing Agents</label>
+              <select id="mindcraft-agent"></select>
+              <div class="row">
+                <button id="mindcraft-start">Start</button>
+                <button id="mindcraft-stop" class="secondary">Stop</button>
+                <button id="mindcraft-destroy" class="secondary">Destroy</button>
+              </div>
+              <p id="mindcraft-status" style="font-size: 12px; color: #aab0c0;">Mindcraft: disconnected</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="card card--wide" data-card-id="viewer" data-card-title="Viewer">
+        <div class="card-head" draggable="true">
+          <h3>Viewer</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="viewer-wrap">
+            <iframe id="viewer" title="Prismarine Viewer"></iframe>
+            <div id="viewer-overlay" class="viewer-overlay">
+              <div class="viewer-hint">Viewer controls enabled. Right click + drag to look. WASD/Space/Shift to move.</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-  </div>
 
-  <script>
-    let ws
-    let lastCommandId = 0
-
-    const statusEl = document.getElementById('status')
-    const telemetryEl = document.getElementById('telemetry')
-    const viewerEl = document.getElementById('viewer')
-    const overlayEl = document.getElementById('viewer-overlay')
-    const botSelectEl = document.getElementById('bot-select')
-    const botStatusEl = document.getElementById('bot-status')
-    const toggleControlsEl = document.getElementById('toggle-controls')
-    const lookSensitivityEl = document.getElementById('look-sensitivity')
-    const jobSelectEl = document.getElementById('job-select')
-    const jobOptionsEl = document.getElementById('job-options')
-    const jobStartEl = document.getElementById('job-start')
-    const jobStopEl = document.getElementById('job-stop')
-    const mindcraftHostEl = document.getElementById('mindcraft-host')
-    const mindcraftPortEl = document.getElementById('mindcraft-port')
-    const mindcraftConnectEl = document.getElementById('mindcraft-connect')
-    const mindcraftProfileEl = document.getElementById('mindcraft-profile')
-    const mindcraftNameEl = document.getElementById('mindcraft-name')
-    const mindcraftAuthEl = document.getElementById('mindcraft-auth')
-    const mindcraftBaseEl = document.getElementById('mindcraft-base')
-    const mindcraftInitEl = document.getElementById('mindcraft-init')
-    const mindcraftCreateEl = document.getElementById('mindcraft-create')
-    const mindcraftAgentEl = document.getElementById('mindcraft-agent')
-    const mindcraftStartEl = document.getElementById('mindcraft-start')
-    const mindcraftStopEl = document.getElementById('mindcraft-stop')
-    const mindcraftDestroyEl = document.getElementById('mindcraft-destroy')
-    const mindcraftStatusEl = document.getElementById('mindcraft-status')
-
-    let selectedBotId = ''
-    let controlsEnabled = false
-    let isLooking = false
-    let lastMouseX = 0
-    let lastMouseY = 0
-    let lookSensitivity = 0.0025
-    let viewerHost = location.hostname
-    let botsCache = []
-    let jobsCache = []
-    let mindcraftProfiles = []
-    const mindcraftMcHost = 'mc.craycon.no'
-    const mindcraftMcPort = 25565
-    const heldKeys = new Set()
-    const keyMap = new Map([
-      ['KeyW', 'forward'],
-      ['KeyS', 'back'],
-      ['KeyA', 'left'],
-      ['KeyD', 'right'],
-      ['Space', 'jump'],
-      ['ShiftLeft', 'sprint'],
-      ['ShiftRight', 'sprint']
-    ])
-
-    function logStatus(text) {
-      statusEl.textContent = text
-    }
-
-    function send(type, args = {}, options = {}) {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return
-      lastCommandId += 1
-      const payloadArgs = { ...args }
-      if (options.includeBotId !== false && selectedBotId && !payloadArgs.botId) {
-        payloadArgs.botId = selectedBotId
-      }
-      ws.send(JSON.stringify({ type, id: `cmd-${lastCommandId}`, args: payloadArgs }))
-    }
-
-    function updateBotSelect(bots) {
-      botsCache = bots || []
-      botSelectEl.innerHTML = ''
-      if (!botsCache || botsCache.length === 0) {
-        const option = document.createElement('option')
-        option.value = ''
-        option.textContent = 'No bots'
-        botSelectEl.appendChild(option)
-        selectedBotId = ''
-        botStatusEl.textContent = 'No bots connected'
-        return
-      }
-      botsCache.forEach(bot => {
-        const option = document.createElement('option')
-        option.value = bot.id
-        const jobLabel = bot.job ? ` • ${bot.job}` : ''
-        option.textContent = `${bot.name} (${bot.inGame ? 'online' : 'offline'})${jobLabel}`
-        botSelectEl.appendChild(option)
-      })
-      if (!selectedBotId || !botsCache.find(bot => bot.id === selectedBotId)) {
-        selectedBotId = botsCache[0].id
-        botSelectEl.value = selectedBotId
-      }
-      const active = botsCache.find(bot => bot.id === selectedBotId)
-      botStatusEl.textContent = active ? `Active: ${active.name}` : 'Select a bot'
-      if (active && active.viewerPort) {
-        setViewerSrc(active.viewerPort)
-      }
-    }
-
-    function setViewerSrc(viewerPort) {
-      if (!viewerPort) return
-      const next = `http://${viewerHost}:${viewerPort}`
-      if (viewerEl.dataset.src === next) return
-      viewerEl.dataset.src = next
-      viewerEl.src = next
-    }
-
-    function updateJobSelect(jobs) {
-      jobsCache = jobs || []
-      jobSelectEl.innerHTML = ''
-      if (!jobsCache.length) {
-        const option = document.createElement('option')
-        option.value = ''
-        option.textContent = 'No jobs'
-        jobSelectEl.appendChild(option)
-        return
-      }
-      jobsCache.forEach(job => {
-        const option = document.createElement('option')
-        option.value = job.id
-        option.textContent = job.label || job.id
-        jobSelectEl.appendChild(option)
-      })
-      if (!jobSelectEl.value) {
-        jobSelectEl.value = jobsCache[0].id
-      }
-    }
-
-    function updateMindcraftProfiles(profiles) {
-      mindcraftProfiles = profiles || []
-      mindcraftProfileEl.innerHTML = ''
-      if (!mindcraftProfiles.length) {
-        const option = document.createElement('option')
-        option.value = ''
-        option.textContent = 'No profiles'
-        mindcraftProfileEl.appendChild(option)
-        return
-      }
-      mindcraftProfiles.forEach(profile => {
-        const option = document.createElement('option')
-        option.value = profile
-        option.textContent = profile
-        mindcraftProfileEl.appendChild(option)
-      })
-      if (!mindcraftProfileEl.value) {
-        mindcraftProfileEl.value = mindcraftProfiles[0]
-      }
-    }
-
-    function updateMindcraftAgents(agents) {
-      mindcraftAgentEl.innerHTML = ''
-      const list = agents || []
-      if (!list.length) {
-        const option = document.createElement('option')
-        option.value = ''
-        option.textContent = 'No agents'
-        mindcraftAgentEl.appendChild(option)
-        return
-      }
-      list.forEach(agent => {
-        const option = document.createElement('option')
-        option.value = agent.name
-        option.textContent = `${agent.name} (${agent.in_game ? 'online' : 'offline'})`
-        mindcraftAgentEl.appendChild(option)
-      })
-      if (!mindcraftAgentEl.value) {
-        mindcraftAgentEl.value = list[0].name
-      }
-    }
-
-    function setMindcraftAvailability(enabled, available) {
-      const disabled = !enabled || !available
-      const elements = [
-        mindcraftHostEl,
-        mindcraftPortEl,
-        mindcraftConnectEl,
-        mindcraftProfileEl,
-        mindcraftNameEl,
-        mindcraftAuthEl,
-        mindcraftBaseEl,
-        mindcraftInitEl,
-        mindcraftCreateEl,
-        mindcraftAgentEl,
-        mindcraftStartEl,
-        mindcraftStopEl,
-        mindcraftDestroyEl
-      ]
-      elements.forEach(el => {
-        el.disabled = disabled
-      })
-    }
-
-    document.getElementById('connect').addEventListener('click', () => {
-      const token = document.getElementById('token').value.trim()
-      const url = new URL(window.location.href)
-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-      url.searchParams.set('token', token)
-
-      ws = new WebSocket(url.toString())
-
-      ws.addEventListener('open', () => logStatus('Connected'))
-      ws.addEventListener('close', () => logStatus('Disconnected'))
-      ws.addEventListener('message', event => {
-        const data = JSON.parse(event.data)
-        if (data.type === 'telemetry') {
-          const bots = data.payload && data.payload.bots ? data.payload.bots : []
-          const active = bots.find(bot => bot.id === selectedBotId) || bots[0]
-          telemetryEl.textContent = JSON.stringify(active || {}, null, 2)
-        }
-        if (data.type === 'hello') {
-          const { bots, defaultBotId, lookSensitivity: serverSensitivity, viewerHost: hostOverride, jobs, mindcraft, mcHost, mcPort } = data.payload
-          if (Number.isFinite(serverSensitivity)) {
-            lookSensitivity = serverSensitivity
-            lookSensitivityEl.value = String(serverSensitivity)
-          }
-          if (hostOverride) {
-            viewerHost = hostOverride
-          }
-          selectedBotId = defaultBotId || selectedBotId
-          updateBotSelect(bots || [])
-          updateJobSelect(jobs || [])
-          if (mindcraft) {
-            mindcraftHostEl.value = mindcraft.host || mindcraftHostEl.value
-            mindcraftPortEl.value = mindcraft.port || mindcraftPortEl.value
-            updateMindcraftProfiles(mindcraft.profiles || [])
-            setMindcraftAvailability(mindcraft.enabled, mindcraft.available)
-          }
-        }
-        if (data.type === 'bot-list') {
-          updateBotSelect(data.payload.bots || [])
-        }
-        if (data.type === 'mindcraft-status') {
-          const payload = data.payload || {}
-          const statusText = payload.connected ? 'connected' : 'disconnected'
-          mindcraftStatusEl.textContent = `Mindcraft: ${statusText}`
-          if (payload.host) mindcraftHostEl.value = payload.host
-          if (payload.port) mindcraftPortEl.value = String(payload.port)
-          updateMindcraftAgents(payload.agents || [])
-          setMindcraftAvailability(payload.enabled, payload.available)
-        }
-        if (data.type === 'error') {
-          logStatus(`Error: ${data.message || 'unknown'}`)
-        }
-      })
-    })
-
-    document.getElementById('disconnect').addEventListener('click', () => {
-      if (ws) ws.close()
-    })
-
-    botSelectEl.addEventListener('change', event => {
-      selectedBotId = event.target.value
-      const active = botsCache.find(bot => bot.id === selectedBotId)
-      if (active && active.viewerPort) {
-        setViewerSrc(active.viewerPort)
-        botStatusEl.textContent = `Active: ${active.name}`
-      }
-      send('status')
-    })
-
-    document.getElementById('spawn').addEventListener('click', () => {
-      const username = document.getElementById('spawn-name').value.trim()
-      if (!username) return
-      send('spawn', { username }, { includeBotId: false })
-      document.getElementById('spawn-name').value = ''
-    })
-
-    document.getElementById('move').addEventListener('click', () => {
-      const x = Number(document.getElementById('move-x').value)
-      const y = Number(document.getElementById('move-y').value)
-      const z = Number(document.getElementById('move-z').value)
-      send('move', { x, y, z })
-    })
-
-    document.getElementById('follow').addEventListener('click', () => {
-      const playerName = document.getElementById('follow-name').value.trim()
-      const distance = Number(document.getElementById('follow-distance').value)
-      send('follow', { playerName, distance })
-    })
-
-    document.getElementById('stop').addEventListener('click', () => {
-      send('stop')
-    })
-
-    jobStartEl.addEventListener('click', () => {
-      const job = jobSelectEl.value
-      if (!job) return
-      let options = {}
-      const raw = jobOptionsEl.value.trim()
-      if (raw) {
-        try {
-          options = JSON.parse(raw)
-        } catch (error) {
-          logStatus('Error: invalid job options JSON')
-          return
-        }
-      }
-      send('job', { action: 'start', job, options })
-    })
-
-    jobStopEl.addEventListener('click', () => {
-      send('job', { action: 'stop' })
-    })
-
-    mindcraftConnectEl.addEventListener('click', () => {
-      send(
-        'mindcraft',
-        {
-          action: 'connect',
-          host: mindcraftHostEl.value.trim() || 'localhost',
-          port: Number(mindcraftPortEl.value) || 8080
-        },
-        { includeBotId: false }
-      )
-    })
-
-    mindcraftCreateEl.addEventListener('click', () => {
-      const profile = mindcraftProfileEl.value
-      if (!profile) return
-      const name = mindcraftNameEl.value.trim()
-      send(
-        'mindcraft',
-        {
-          action: 'create',
-          profile,
-          name,
-          auth: mindcraftAuthEl.value,
-          baseProfile: mindcraftBaseEl.value,
-          initMessage: mindcraftInitEl.value.trim(),
-          host: mindcraftMcHost,
-          port: mindcraftMcPort,
-          mindcraftHost: mindcraftHostEl.value.trim() || 'localhost',
-          mindcraftPort: Number(mindcraftPortEl.value) || 8080
-        },
-        { includeBotId: false }
-      )
-    })
-
-    mindcraftStartEl.addEventListener('click', () => {
-      const name = mindcraftAgentEl.value
-      if (!name) return
-      send(
-        'mindcraft',
-        {
-          action: 'start',
-          name,
-          mindcraftHost: mindcraftHostEl.value.trim() || 'localhost',
-          mindcraftPort: Number(mindcraftPortEl.value) || 8080
-        },
-        { includeBotId: false }
-      )
-    })
-
-    mindcraftStopEl.addEventListener('click', () => {
-      const name = mindcraftAgentEl.value
-      if (!name) return
-      send(
-        'mindcraft',
-        {
-          action: 'stop',
-          name,
-          mindcraftHost: mindcraftHostEl.value.trim() || 'localhost',
-          mindcraftPort: Number(mindcraftPortEl.value) || 8080
-        },
-        { includeBotId: false }
-      )
-    })
-
-    mindcraftDestroyEl.addEventListener('click', () => {
-      const name = mindcraftAgentEl.value
-      if (!name) return
-      send(
-        'mindcraft',
-        {
-          action: 'destroy',
-          name,
-          mindcraftHost: mindcraftHostEl.value.trim() || 'localhost',
-          mindcraftPort: Number(mindcraftPortEl.value) || 8080
-        },
-        { includeBotId: false }
-      )
-    })
-
-    toggleControlsEl.addEventListener('click', () => {
-      controlsEnabled = !controlsEnabled
-      overlayEl.classList.toggle('active', controlsEnabled)
-      toggleControlsEl.textContent = controlsEnabled ? 'Disable' : 'Enable'
-    })
-
-    lookSensitivityEl.addEventListener('change', event => {
-      const value = Number(event.target.value)
-      if (Number.isFinite(value)) {
-        lookSensitivity = value
-      }
-    })
-
-    overlayEl.addEventListener('contextmenu', event => {
-      if (controlsEnabled) {
-        event.preventDefault()
-      }
-    })
-
-    overlayEl.addEventListener('mousedown', event => {
-      if (!controlsEnabled) return
-      if (event.button !== 2) return
-      isLooking = true
-      overlayEl.classList.add('is-looking')
-      lastMouseX = event.clientX
-      lastMouseY = event.clientY
-    })
-
-    window.addEventListener('mouseup', event => {
-      if (event.button !== 2) return
-      isLooking = false
-      overlayEl.classList.remove('is-looking')
-    })
-
-    overlayEl.addEventListener('mousemove', event => {
-      if (!controlsEnabled || !isLooking) return
-      const dx = event.clientX - lastMouseX
-      const dy = event.clientY - lastMouseY
-      lastMouseX = event.clientX
-      lastMouseY = event.clientY
-      if (dx === 0 && dy === 0) return
-      send('look', { dx, dy, sensitivity: lookSensitivity })
-    })
-
-    window.addEventListener('keydown', event => {
-      if (!controlsEnabled) return
-      if (event.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return
-      const control = keyMap.get(event.code)
-      if (!control || heldKeys.has(event.code)) return
-      event.preventDefault()
-      heldKeys.add(event.code)
-      send('control', { control, value: true })
-    })
-
-    window.addEventListener('keyup', event => {
-      if (!controlsEnabled) return
-      const control = keyMap.get(event.code)
-      if (!control) return
-      event.preventDefault()
-      heldKeys.delete(event.code)
-      send('control', { control, value: false })
-    })
-  </script>
+  <script src="/remote_control_ui.js" defer></script>
 </body>
 </html>

@@ -75,6 +75,17 @@ const CONFIG = {
 }
 
 const UI_HTML = fs.existsSync(CONFIG.uiPath) ? fs.readFileSync(CONFIG.uiPath, 'utf8') : null
+const UI_DIR = path.dirname(CONFIG.uiPath)
+const UI_ASSETS = {
+  '/remote_control_ui.css': {
+    path: path.join(UI_DIR, 'remote_control_ui.css'),
+    type: 'text/css; charset=utf-8'
+  },
+  '/remote_control_ui.js': {
+    path: path.join(UI_DIR, 'remote_control_ui.js'),
+    type: 'text/javascript; charset=utf-8'
+  }
+}
 
 const bots = new Map()
 let nextViewerPort = CONFIG.viewerPort
@@ -83,6 +94,19 @@ let defaultBotId = null
 let telemetryTimer = null
 
 const server = http.createServer((req, res) => {
+  const url = new URL(req.url || '/', `http://${req.headers.host}`)
+  const asset = UI_ASSETS[url.pathname]
+  if (asset) {
+    if (!fs.existsSync(asset.path)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' })
+      res.end('Asset not found')
+      return
+    }
+    res.writeHead(200, { 'Content-Type': asset.type })
+    res.end(fs.readFileSync(asset.path))
+    return
+  }
+
   if (!UI_HTML) {
     res.writeHead(404, { 'Content-Type': 'text/plain' })
     res.end(`${path.basename(CONFIG.uiPath)} not found`)

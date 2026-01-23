@@ -670,6 +670,17 @@ function broadcastBotList() {
   broadcast({ type: 'bot-list', payload: { bots: getBotList() } })
 }
 
+function generateComradeName() {
+  const existingNames = new Set(Array.from(bots.keys()))
+  for (let i = 0; i < 100; i++) {
+    const num = String(i).padStart(2, '0')
+    const name = `comrade_${num}`
+    if (!existingNames.has(name)) return name
+  }
+  // Fallback to timestamp if all 00-99 are taken
+  return `comrade_${Date.now() % 10000}`
+}
+
 function getState(botId) {
   if (botId) {
     const state = bots.get(botId)
@@ -683,8 +694,8 @@ function getState(botId) {
 }
 
 function spawnBot({ username, host, port }) {
-  const id = username
-  if (!id) throw new Error('username required')
+  // Auto-generate name if not provided
+  const id = username || generateComradeName()
   if (bots.has(id)) throw new Error(`Bot already exists: ${id}`)
 
   const index = bots.size
@@ -692,7 +703,7 @@ function spawnBot({ username, host, port }) {
   nextViewerPort += 1
 
   const bot = mineflayer.createBot({
-    username,
+    username: id,
     host,
     port
   })
@@ -704,7 +715,8 @@ function spawnBot({ username, host, port }) {
     activeTask: null,
     jobName: null,
     jobOptions: null,
-    assignedJob: resolveInitialJob(id, index)
+    assignedJob: resolveInitialJob(id, index),
+    deathCount: 0
   }
 
   bots.set(id, state)
@@ -714,6 +726,7 @@ function spawnBot({ username, host, port }) {
     state.viewerServer = createViewerServer(state)
     startTelemetry()
     broadcastBotList()
+    bot.chat(`Comrade ${id} reporting for duty!`)
     if (state.assignedJob && JOBS[state.assignedJob]) {
       try {
         startJob(state, state.assignedJob)
@@ -721,6 +734,30 @@ function spawnBot({ username, host, port }) {
         console.error(`[remote-control] ${id} job start failed`, error)
       }
     }
+  })
+
+  // Handle respawn after death
+  bot.on('spawn', () => {
+    if (state.deathCount > 0) {
+      console.log(`[remote-control] ${id} respawned after death #${state.deathCount}`)
+      bot.chat(`Comrade ${id} back from gulag! Resuming work.`)
+      // Resume job if one was assigned
+      if (state.assignedJob && JOBS[state.assignedJob]) {
+        try {
+          startJob(state, state.assignedJob)
+        } catch (error) {
+          console.error(`[remote-control] ${id} job restart failed`, error)
+        }
+      }
+    }
+  })
+
+  bot.on('death', () => {
+    state.deathCount++
+    console.log(`[remote-control] ${id} died (death #${state.deathCount})`)
+    bot.chat(`Comrade ${id} has fallen! Respawning...`)
+    if (state.activeTask) state.activeTask.cancelled = true
+    stopMotion(state)
   })
 
   bot.on('end', () => {
@@ -962,7 +999,7 @@ wss.on('connection', (ws, req) => {
 
       if (type === 'spawn') {
         const { username } = args
-        if (!username) throw new Error('spawn requires username')
+        // Username is now optional - will auto-generate if not provided
         send(ws, { type: 'ack', id })
         const state = spawnBot({ username, host: CONFIG.host, port: CONFIG.port })
         send(ws, { type: 'done', id, payload: { botId: state.id, viewerPort: state.viewerPort } })

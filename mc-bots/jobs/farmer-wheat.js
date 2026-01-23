@@ -1,5 +1,5 @@
 const { Vec3 } = require('vec3')
-const { sleep, stopMotion } = require('./utils')
+const { sleep, stopMotion, escapeWater } = require('./utils')
 
 const CROP = {
   block: 'wheat',
@@ -82,6 +82,8 @@ async function run(state, task, options) {
   
   // Give starter kit immediately on spawn
   let kitGiven = false
+  let lastActivity = Date.now()
+  let searchCount = 0
 
   while (!task.cancelled) {
     if (!bot.entity) {
@@ -95,30 +97,71 @@ async function run(state, task, options) {
       kitGiven = true
     }
 
+    // Check if stuck in water and try to escape
+    const inWater = bot.entity.isInWater
+    if (inWater) {
+      bot.chat('Stuck in water! Attempting escape...')
+      await escapeWater(bot)
+      await sleep(500)
+      continue
+    }
+
     // Look for ripe wheat
     const ripe = findRipeCrop(bot, radius)
     if (ripe) {
-      await bot.dig(ripe)
-      notifyHarvest(bot, 1)
+      bot.chat(`Found ripe wheat at ${ripe.position.x}, ${ripe.position.y}, ${ripe.position.z}!`)
+      try {
+        await bot.dig(ripe)
+        notifyHarvest(bot, 1)
+        lastActivity = Date.now()
+      } catch (error) {
+        console.log(`[farmer-wheat] ${bot.username} harvest failed:`, error.message)
+        await sleep(idleMs)
+      }
       continue
     }
 
     // Look for empty farmland to plant
     const plot = findFarmland(bot, radius)
     if (plot) {
+      searchCount = 0
+      bot.chat(`Found empty farmland, planting wheat seeds...`)
       try {
+        // Make sure we have seeds
+        const seedItem = bot.inventory.items().find(item => item.name === CROP.seed)
+        if (!seedItem) {
+          bot.chat(`Out of wheat seeds! Need resupply!`)
+          await sleep(idleMs * 5)
+          continue
+        }
+        
+        // Equip seeds
         await bot.equip(bot.registry.itemsByName[CROP.seed].id, 'hand')
+        
+        // Place seeds on farmland
         await bot.placeBlock(plot, new Vec3(0, 1, 0))
+        bot.chat(`Planted wheat seeds! Seeds remaining: ${seedItem.count - 1}`)
+        lastActivity = Date.now()
       } catch (error) {
+        console.log(`[farmer-wheat] ${bot.username} planting failed:`, error.message)
+        bot.chat(`Failed to plant: ${error.message}`)
         await sleep(idleMs)
       }
       continue
+    }
+
+    // Report when searching
+    searchCount++
+    if (searchCount % 10 === 0) {
+      const timeSinceActivity = Math.floor((Date.now() - lastActivity) / 1000)
+      bot.chat(`Searching for wheat work... (idle ${timeSinceActivity}s)`)
     }
 
     await sleep(idleMs)
   }
 
   stopMotion(bot)
+  bot.chat('Wheat farming duties suspended.')
 }
 
 module.exports = {

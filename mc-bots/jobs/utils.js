@@ -42,10 +42,43 @@ function toVec3(value, fallback) {
   return fallback
 }
 
+async function escapeWater(bot) {
+  if (!bot || !bot.entity) return false
+  
+  // Check if bot is in water
+  const block = bot.blockAt(bot.entity.position)
+  if (!block || block.name !== 'water') return false
+  
+  console.log(`[utils] ${bot.username} is in water, attempting escape...`)
+  
+  // Jump repeatedly while moving forward to get out
+  for (let i = 0; i < 20; i++) {
+    bot.setControlState('jump', true)
+    bot.setControlState('forward', true)
+    await sleep(100)
+  }
+  
+  bot.setControlState('jump', false)
+  bot.setControlState('forward', false)
+  
+  // Check if still in water
+  const blockAfter = bot.blockAt(bot.entity.position)
+  const escaped = !blockAfter || blockAfter.name !== 'water'
+  
+  if (escaped) {
+    console.log(`[utils] ${bot.username} escaped from water!`)
+  } else {
+    console.log(`[utils] ${bot.username} still stuck in water`)
+  }
+  
+  return escaped
+}
+
 module.exports = {
   sleep,
   stopMotion,
   jump,
   stepToward,
-  toVec3
+  toVec3,
+  escapeWater
 }

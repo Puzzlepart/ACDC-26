@@ -535,15 +535,17 @@ function applyLayoutState() {
     if (card) card.classList.add('is-minimized')
   })
 
-  Object.entries(layoutState.sizes).forEach(([id, size]) => {
-    const card = cardMap.get(id)
-    if (!card || !size) return
-    if (size.colSpan) card.style.gridColumnEnd = `span ${size.colSpan}`
-    if (size.rowSpan) card.style.gridRowEnd = `span ${size.rowSpan}`
-  })
+  if (layoutState.sizes && typeof layoutState.sizes === 'object') {
+    Object.entries(layoutState.sizes).forEach(([id, size]) => {
+      const card = cardMap.get(id)
+      if (!card || !size) return
+      if (size.colSpan) card.style.gridColumnEnd = `span ${size.colSpan}`
+      if (size.rowSpan) card.style.gridRowEnd = `span ${size.rowSpan}`
+    })
+  }
 
   const viewerCard = cardMap.get('viewer')
-  if (viewerCard && !layoutState.sizes.viewer) {
+  if (viewerCard && (!layoutState.sizes || !layoutState.sizes.viewer)) {
     viewerCard.style.gridColumnEnd = `span ${metrics.columnCount}`
   }
 

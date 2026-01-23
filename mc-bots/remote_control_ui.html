@@ -33,9 +33,13 @@
     h3 { margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gold); }
     label { display: block; font-size: 11px; margin-bottom: 4px; color: var(--muted); }
     input, button, select { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: #0d1016; color: var(--text); }
-    button { cursor: pointer; background: linear-gradient(180deg, var(--red), var(--red-dark)); border-color: #7b0b12; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+    button { cursor: pointer; background: linear-gradient(180deg, var(--red), var(--red-dark)); border-color: #7b0b12; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; margin: .3rem 0; }
     button.secondary { background: #2a2f3b; border-color: #2a2f3b; text-transform: none; font-weight: 500; }
     .row { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+    details { margin-top: 8px; border: 1px solid #2a2f3b; border-radius: 8px; background: rgba(8, 10, 14, 0.6); }
+    summary { list-style: none; cursor: pointer; padding: 8px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gold); }
+    summary::-webkit-details-marker { display: none; }
+    .accordion-body { padding: 0 10px 10px 10px; display: grid; gap: 8px; }
     pre { background: #0a0c10; padding: 8px; border-radius: 6px; height: 120px; overflow: auto; font-size: 12px; }
     iframe { width: 100%; height: 320px; border: 0; border-radius: 10px; background: #0b0d11; }
     .viewer-wrap { position: relative; }
@@ -49,7 +53,7 @@
 <body>
   <div class="shell">
     <header>
-      <h1>CrayCon Creepers Central Production Command and Control Center (CCCPCCC, lol)</h1>
+      <h1>CrayCon Creepers Central Production Command and Control Center (C.C.C.P.C.C.C)</h1>
       <div class="subtitle">Authorized Operators Only • Productivity Above All</div>
     </header>
 
@@ -127,35 +131,36 @@
       <button id="mindcraft-connect" class="secondary">Connect</button>
       <label>Profile</label>
       <select id="mindcraft-profile"></select>
-      <label>Minecraft Host</label>
-      <input id="mindcraft-mc-host" value="localhost" />
-      <label>Minecraft Port</label>
-      <input id="mindcraft-mc-port" value="55916" />
-      <label>Agent Name</label>
-      <input id="mindcraft-name" placeholder="llm_bot" />
-      <label>Auth</label>
-      <select id="mindcraft-auth">
-        <option value="offline">offline</option>
-        <option value="microsoft">microsoft</option>
-      </select>
-      <label>Base Profile</label>
-      <select id="mindcraft-base">
-        <option value="survival">survival</option>
-        <option value="assistant">assistant</option>
-        <option value="creative">creative</option>
-        <option value="god_mode">god_mode</option>
-      </select>
-      <label>Init Message</label>
-      <input id="mindcraft-init" value="Respond with hello world and your name" />
       <button id="mindcraft-create">Create LLM Bot</button>
-      <label>Existing Agents</label>
-      <select id="mindcraft-agent"></select>
-      <div class="row">
-        <button id="mindcraft-start">Start</button>
-        <button id="mindcraft-stop" class="secondary">Stop</button>
-        <button id="mindcraft-destroy" class="secondary">Destroy</button>
-      </div>
-      <p id="mindcraft-status" style="font-size: 12px; color: #aab0c0;">Mindcraft: disconnected</p>
+      <details>
+        <summary>Advanced</summary>
+        <div class="accordion-body">
+          <label>Agent Name</label>
+          <input id="mindcraft-name" placeholder="llm_bot" />
+          <label>Auth</label>
+          <select id="mindcraft-auth">
+            <option value="offline">offline</option>
+            <option value="microsoft">microsoft</option>
+          </select>
+          <label>Base Profile</label>
+          <select id="mindcraft-base">
+            <option value="survival">survival</option>
+            <option value="assistant">assistant</option>
+            <option value="creative">creative</option>
+            <option value="god_mode">god_mode</option>
+          </select>
+          <label>Init Message</label>
+          <input id="mindcraft-init" value="Respond with hello world and your name" />
+          <label>Existing Agents</label>
+          <select id="mindcraft-agent"></select>
+          <div class="row">
+            <button id="mindcraft-start">Start</button>
+            <button id="mindcraft-stop" class="secondary">Stop</button>
+            <button id="mindcraft-destroy" class="secondary">Destroy</button>
+          </div>
+          <p id="mindcraft-status" style="font-size: 12px; color: #aab0c0;">Mindcraft: disconnected</p>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -190,8 +195,6 @@
     const mindcraftPortEl = document.getElementById('mindcraft-port')
     const mindcraftConnectEl = document.getElementById('mindcraft-connect')
     const mindcraftProfileEl = document.getElementById('mindcraft-profile')
-    const mindcraftMcHostEl = document.getElementById('mindcraft-mc-host')
-    const mindcraftMcPortEl = document.getElementById('mindcraft-mc-port')
     const mindcraftNameEl = document.getElementById('mindcraft-name')
     const mindcraftAuthEl = document.getElementById('mindcraft-auth')
     const mindcraftBaseEl = document.getElementById('mindcraft-base')
@@ -213,6 +216,8 @@
     let botsCache = []
     let jobsCache = []
     let mindcraftProfiles = []
+    const mindcraftMcHost = 'mc.craycon.no'
+    const mindcraftMcPort = 25565
     const heldKeys = new Set()
     const keyMap = new Map([
       ['KeyW', 'forward'],
@@ -338,8 +343,6 @@
         mindcraftPortEl,
         mindcraftConnectEl,
         mindcraftProfileEl,
-        mindcraftMcHostEl,
-        mindcraftMcPortEl,
         mindcraftNameEl,
         mindcraftAuthEl,
         mindcraftBaseEl,
@@ -381,8 +384,6 @@
           if (hostOverride) {
             viewerHost = hostOverride
           }
-          if (mcHost) mindcraftMcHostEl.value = mcHost
-          if (mcPort) mindcraftMcPortEl.value = String(mcPort)
           selectedBotId = defaultBotId || selectedBotId
           updateBotSelect(bots || [])
           updateJobSelect(jobs || [])
@@ -494,8 +495,8 @@
           auth: mindcraftAuthEl.value,
           baseProfile: mindcraftBaseEl.value,
           initMessage: mindcraftInitEl.value.trim(),
-          host: mindcraftMcHostEl.value.trim(),
-          port: Number(mindcraftMcPortEl.value),
+          host: mindcraftMcHost,
+          port: mindcraftMcPort,
           mindcraftHost: mindcraftHostEl.value.trim() || 'localhost',
           mindcraftPort: Number(mindcraftPortEl.value) || 8080
         },

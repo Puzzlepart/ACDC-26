@@ -317,12 +317,17 @@ function startJob(state, jobName, overrides = {}) {
     })
 }
 
-function stopJob(state) {
+function stopJob(state, options = {}) {
+  const hadJob = Boolean(state && state.jobName)
   cancelActiveTask(state)
-  state.jobName = null
-  state.jobOptions = null
+  if (state) {
+    state.jobName = null
+    state.jobOptions = null
+  }
   stopMotion(state)
-  broadcastBotList()
+  if ((options.broadcast ?? true) && hadJob) {
+    broadcastBotList()
+  }
 }
 
 function resolveInitialJob(botName, index) {

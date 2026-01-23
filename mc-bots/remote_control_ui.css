@@ -109,6 +109,7 @@ h1 {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-height: 120px;
 }
 .card--wide { grid-column: 1 / -1; }
 .card-head {

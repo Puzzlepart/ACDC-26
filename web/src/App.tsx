@@ -8,6 +8,7 @@ import Stats from './components/Stats'
 import Terminal from './components/Terminal'
 import Contact from './components/Contact'
 import CCCP from './pages/CCCP'
+import BadgeDashboard from './pages/BadgeDashboard'
 
 function HomePage() {
   return (
@@ -35,6 +36,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/cccp" element={<CCCP />} />
+      <Route path="/badges" element={<BadgeDashboard />} />
     </Routes>
   )
 }

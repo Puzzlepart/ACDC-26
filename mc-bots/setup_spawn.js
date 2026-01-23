@@ -8,7 +8,7 @@ const CONFIG = {
 
 const SETUP = {
   centerX: 0,
-  centerZ: 0,
+  centerZ: 150,
   size: 500,
   farmRows: 80,
   farmCols: 80,
@@ -29,6 +29,7 @@ async function setupSpawn(bot) {
   
   console.log('[setup-spawn] Starting spawn area setup...')
   console.log(`[setup-spawn] Area: ${minX},${minZ} to ${maxX},${maxZ}`)
+  console.log('[setup-spawn] Breaking into chunks to avoid /fill limit (32768 blocks)...')
   
   // Wait for bot to spawn
   while (!bot.entity) {
@@ -38,41 +39,89 @@ async function setupSpawn(bot) {
   const baseY = Math.floor(bot.entity.position.y)
   console.log(`[setup-spawn] Base Y level: ${baseY}`)
   
-  // Step 1: Clear air above spawn (10 blocks high)
-  console.log('[setup-spawn] Step 1/4: Clearing air above spawn...')
-  bot.chat(`/fill ${minX} ${baseY} ${minZ} ${maxX} ${baseY + 10} ${maxZ} air`)
-  await sleep(2000)
+  // Chunk size that stays under /fill limit
+  const CHUNK_SIZE = 30 // 30x30x10 = 9000 blocks (safe under 32768 limit)
   
-  // Step 2: Place grass_block floor
-  console.log('[setup-spawn] Step 2/4: Placing grass floor...')
-  bot.chat(`/fill ${minX} ${baseY - 1} ${minZ} ${maxX} ${baseY - 1} ${maxZ} grass_block`)
-  await sleep(2000)
+  // Step 1: Clear air above spawn in chunks
+  console.log('[setup-spawn] Step 1/4: Clearing air above spawn (in chunks)...')
+  let chunkCount = 0
+  for (let x = minX; x < maxX; x += CHUNK_SIZE) {
+    for (let z = minZ; z < maxZ; z += CHUNK_SIZE) {
+      const x2 = Math.min(x + CHUNK_SIZE - 1, maxX)
+      const z2 = Math.min(z + CHUNK_SIZE - 1, maxZ)
+      bot.chat(`/fill ${x} ${baseY} ${z} ${x2} ${baseY + 10} ${z2} air`)
+      chunkCount++
+      if (chunkCount % 10 === 0) {
+        console.log(`[setup-spawn]   Cleared ${chunkCount} chunks...`)
+        await sleep(1000)
+      } else {
+        await sleep(200)
+      }
+    }
+  }
+  console.log(`[setup-spawn]   ✓ Cleared ${chunkCount} chunks`)
+  
+  // Step 2: Place grass_block floor in chunks
+  console.log('[setup-spawn] Step 2/4: Placing grass floor (in chunks)...')
+  chunkCount = 0
+  for (let x = minX; x < maxX; x += CHUNK_SIZE) {
+    for (let z = minZ; z < maxZ; z += CHUNK_SIZE) {
+      const x2 = Math.min(x + CHUNK_SIZE - 1, maxX)
+      const z2 = Math.min(z + CHUNK_SIZE - 1, maxZ)
+      bot.chat(`/fill ${x} ${baseY - 1} ${z} ${x2} ${baseY - 1} ${z2} grass_block`)
+      chunkCount++
+      if (chunkCount % 10 === 0) {
+        console.log(`[setup-spawn]   Placed ${chunkCount} chunks...`)
+        await sleep(1000)
+      } else {
+        await sleep(200)
+      }
+    }
+  }
+  console.log(`[setup-spawn]   ✓ Placed ${chunkCount} chunks`)
   
   // Step 3: Create farmland grid with water channels
-  console.log('[setup-spawn] Step 3/4: Creating farmland grid...')
+  console.log('[setup-spawn] Step 3/4: Creating farmland grid (in chunks)...')
   
-  // First, place all farmland
   const farmMinX = centerX - Math.floor(farmCols * waterInterval / 2)
   const farmMinZ = centerZ - Math.floor(farmRows * waterInterval / 2)
   const farmMaxX = farmMinX + (farmCols * waterInterval)
   const farmMaxZ = farmMinZ + (farmRows * waterInterval)
   
-  bot.chat(`/fill ${farmMinX} ${baseY} ${farmMinZ} ${farmMaxX} ${baseY} ${farmMaxZ} farmland`)
-  await sleep(2000)
+  chunkCount = 0
+  for (let x = farmMinX; x < farmMaxX; x += CHUNK_SIZE) {
+    for (let z = farmMinZ; z < farmMaxZ; z += CHUNK_SIZE) {
+      const x2 = Math.min(x + CHUNK_SIZE - 1, farmMaxX)
+      const z2 = Math.min(z + CHUNK_SIZE - 1, farmMaxZ)
+      bot.chat(`/fill ${x} ${baseY} ${z} ${x2} ${baseY} ${z2} farmland`)
+      chunkCount++
+      if (chunkCount % 10 === 0) {
+        console.log(`[setup-spawn]   Placed ${chunkCount} farmland chunks...`)
+        await sleep(1000)
+      } else {
+        await sleep(200)
+      }
+    }
+  }
+  console.log(`[setup-spawn]   ✓ Placed ${chunkCount} farmland chunks`)
   
   // Step 4: Place water sources in grid pattern
   console.log('[setup-spawn] Step 4/4: Placing water sources...')
   
+  let waterCount = 0
   // Water channels every 9 blocks (optimal for farmland hydration)
   for (let x = farmMinX; x <= farmMaxX; x += waterInterval) {
     bot.chat(`/fill ${x} ${baseY} ${farmMinZ} ${x} ${baseY} ${farmMaxZ} water`)
-    await sleep(500)
+    waterCount++
+    await sleep(200)
   }
   
   for (let z = farmMinZ; z <= farmMaxZ; z += waterInterval) {
     bot.chat(`/fill ${farmMinX} ${baseY} ${z} ${farmMaxX} ${baseY} ${z} water`)
-    await sleep(500)
+    waterCount++
+    await sleep(200)
   }
+  console.log(`[setup-spawn]   ✓ Placed ${waterCount} water channels`)
   
   console.log('[setup-spawn] ✓ Spawn area setup complete!')
   console.log('[setup-spawn] Farm grid ready for planting.')

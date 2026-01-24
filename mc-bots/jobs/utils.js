@@ -74,11 +74,26 @@ async function escapeWater(bot) {
   return escaped
 }
 
+async function postToDataverse(webhookUrl, payload) {
+  if (!webhookUrl) return
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    console.log('[dataverse] POST', response.status, JSON.stringify(payload))
+  } catch (error) {
+    console.error('[dataverse] POST failed:', error.message)
+  }
+}
+
 module.exports = {
   sleep,
   stopMotion,
   jump,
   stepToward,
   toVec3,
-  escapeWater
+  escapeWater,
+  postToDataverse
 }

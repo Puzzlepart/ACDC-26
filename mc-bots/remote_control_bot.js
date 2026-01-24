@@ -79,6 +79,10 @@ const CONFIG = {
       idleMs: Number(process.env.SCOUT_IDLE_MS || 1200),
       allowJump: process.env.SCOUT_ALLOW_JUMP === 'true'
     }
+  },
+  dataverse: {
+    webhookUrl: process.env.DATAVERSE_WEBHOOK_URL || '',
+    enabled: process.env.DATAVERSE_ENABLED !== 'false'
   }
 }
 
@@ -531,7 +535,12 @@ function getJobList() {
 
 function buildJobOptions(jobName, overrides = {}) {
   const base = CONFIG.jobs[jobName] || {}
-  return { ...base, ...overrides }
+  const options = { ...base, ...overrides }
+  // Include dataverse webhook URL for farmer jobs
+  if (CONFIG.dataverse.enabled && CONFIG.dataverse.webhookUrl) {
+    options.webhookUrl = CONFIG.dataverse.webhookUrl
+  }
+  return options
 }
 
 function startJob(state, jobName, overrides = {}) {

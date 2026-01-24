@@ -1,5 +1,5 @@
 const { Vec3 } = require('vec3')
-const { sleep, stopMotion, escapeWater } = require('./utils')
+const { sleep, stopMotion, escapeWater, postToDataverse } = require('./utils')
 
 const CROP = {
   block: 'wheat',
@@ -8,26 +8,28 @@ const CROP = {
   name: 'wheat'
 }
 
-function notifyHarvest(bot, amount) {
+async function notifyHarvest(bot, amount, webhookUrl) {
   const payload = {
     crop: CROP.name,
     timestamp: Date.now(),
     bot_name: bot.username,
     amount: amount
   }
-  
+
   // Log to console
   console.log('[harvest]', JSON.stringify(payload))
-  
+
   // Chat in-game
   bot.chat(`Harvested ${amount} ${CROP.name}`)
-  
-  // TODO: POST to webhook endpoint
-  // await fetch(WEBHOOK_URL, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload)
-  // })
+
+  // POST to Dataverse via Power Automate
+  const dataversePayload = {
+    resourceName: 'Wheat',
+    logicalName: 'wheat',
+    quantity: amount,
+    ID: Math.floor(Math.random() * 2147483647)
+  }
+  await postToDataverse(webhookUrl, dataversePayload)
 }
 
 async function checkStarterKit(bot) {
@@ -128,7 +130,7 @@ async function run(state, task, options) {
         totalHarvested++
         // Only notify every 10 harvests to avoid spam
         if (harvestCount % 10 === 0) {
-          notifyHarvest(bot, harvestCount)
+          await notifyHarvest(bot, harvestCount, options.webhookUrl)
           bot.chat(`Harvested ${totalHarvested} wheat total (${harvestCount} this session)`)
           harvestCount = 0
         }

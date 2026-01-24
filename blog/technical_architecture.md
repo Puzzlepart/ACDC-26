@@ -89,3 +89,77 @@ The receiving flow should:
 - Harvests are batched in groups of 10 to reduce API calls
 - Each POST represents 10 individual block harvests
 - The `quantity` field always equals the batch size (10)
+
+---
+
+## Infrastructure & Network Configuration
+
+### Azure VM Setup
+
+The Minecraft bot server runs on an Ubuntu VM in Azure with the following network configuration:
+
+#### Network Security Group (NSG) Rules
+
+| Priority | Name | Port | Protocol | Purpose |
+|----------|------|------|----------|---------|
+| 300 | SSH | 22 | TCP | Remote administration |
+| 310 | minecraft | 25560-25599 | Any | Minecraft server connections |
+| 320 | bot-remote-control-ui | 4000 | Any | Bot control web interface |
+| 330 | bot-remote-control-viewer | 3000 | Any | Prismarine 3D viewer (direct access) |
+| 340 | nginx_80_to_443 | 80 | Any | HTTP (Let's Encrypt ACME challenge) |
+| 350 | https | 443 | Any | HTTPS (proxied viewer at cam.craycon.no) |
+
+**Note:** Port 80 is required for Let's Encrypt/Certbot ACME challenge validation. Port 443 serves the proxied HTTPS viewer.
+
+### Reverse Proxy Configuration
+
+The Prismarine viewer (port 3000) is proxied through nginx to `cam.craycon.no` with SSL.
+
+**Nginx config:** `/etc/nginx/sites-available/cam.craycon.no`
+
+```nginx
+server {
+    listen 80;
+    server_name cam.craycon.no;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Long-lived WebSocket connections
+        proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
+    }
+}
+```
+
+**SSL Setup:**
+
+```bash
+# Install certbot
+sudo apt install certbot python3-certbot-nginx
+
+# Obtain and configure SSL certificate
+sudo certbot --nginx -d cam.craycon.no
+```
+
+Certbot automatically:
+- Obtains SSL certificate from Let's Encrypt
+- Updates nginx config to redirect HTTP → HTTPS
+- Sets up auto-renewal via systemd timer
+
+### DNS Configuration
+
+Cloudflare DNS (DNS-only, no proxy):
+
+```
+cam.craycon.no → A record → 135.225.56.193 (DNS only)
+```
+
+**Why DNS-only?** Direct connection to VM allows WebSocket traffic for the 3D viewer without Cloudflare proxy limitations.

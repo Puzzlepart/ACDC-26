@@ -26,7 +26,8 @@ Each harvest event posts the following structure:
   "resourceName": "Wheat",
   "logicalName": "wheat",
   "quantity": 10,
-  "ID": 1847293847
+  "ID": 1847293847,
+  "harvesterBotID": "comrade_01"
 }
 ```
 
@@ -36,6 +37,7 @@ Each harvest event posts the following structure:
 | `logicalName` | string | Lowercase identifier for programmatic use |
 | `quantity` | integer | Number of crops harvested in this batch |
 | `ID` | integer | Random unique identifier per event |
+| `harvesterBotID` | string | Bot username that performed the harvest |
 
 ### Components
 

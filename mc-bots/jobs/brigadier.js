@@ -19,6 +19,11 @@ const SUPPLY_KITS = {
     { item: 'minecraft:diamond_hoe', count: 1 },
     { item: 'minecraft:dirt', count: 64 }
   ],
+  'farmer-carrots': [
+    { item: 'minecraft:carrot', count: 64 },
+    { item: 'minecraft:diamond_hoe', count: 1 },
+    { item: 'minecraft:dirt', count: 64 }
+  ],
   'farmer': [
     { item: 'minecraft:wheat_seeds', count: 64 },
     { item: 'minecraft:carrot', count: 32 },
@@ -44,8 +49,8 @@ const SUPPLY_KITS = {
 }
 
 const SUPPLY_REQUESTS = [
-  /need (wheat|potato|beetroot|seeds|potatoes|beets|resupply)/i,
-  /out of (wheat|potato|beetroot|seeds|potatoes|beets)/i,
+  /need (wheat|potato|beetroot|carrot|seeds|potatoes|beets|carrots|resupply)/i,
+  /out of (wheat|potato|beetroot|carrot|seeds|potatoes|beets|carrots)/i,
   /ready \(need/i,
   /need\s+resupply/i,
   /требую/i, // Russian: "I demand"
@@ -64,6 +69,7 @@ function detectJobFromMessage(message, username) {
   if (lowerMsg.includes('wheat')) return 'farmer-wheat'
   if (lowerMsg.includes('potato')) return 'farmer-potatoes'
   if (lowerMsg.includes('beet')) return 'farmer-beets'
+  if (lowerMsg.includes('carrot')) return 'farmer-carrots'
   if (lowerMsg.includes('farmer')) return 'farmer'
   if (lowerMsg.includes('guard')) return 'guard'
   if (lowerMsg.includes('scout')) return 'scout'
@@ -72,6 +78,7 @@ function detectJobFromMessage(message, username) {
   if (lowerName.includes('wheat')) return 'farmer-wheat'
   if (lowerName.includes('potato')) return 'farmer-potatoes'
   if (lowerName.includes('beet')) return 'farmer-beets'
+  if (lowerName.includes('carrot')) return 'farmer-carrots'
   if (lowerName.includes('farmer')) return 'farmer'
   if (lowerName.includes('guard')) return 'guard'
   if (lowerName.includes('scout')) return 'scout'

@@ -2,10 +2,10 @@ const { Vec3 } = require('vec3')
 const { sleep, stopMotion, escapeWater, postToDataverse } = require('./utils')
 
 const CROP = {
-  block: 'beetroots',
-  seed: 'beetroot_seeds',
-  ripeMeta: 3,
-  name: 'beets'
+  block: 'carrots',
+  seed: 'carrot',
+  ripeMeta: 7,
+  name: 'carrots'
 }
 
 async function notifyHarvest(bot, amount, webhookUrl) {
@@ -24,33 +24,33 @@ async function notifyHarvest(bot, amount, webhookUrl) {
 
   // POST to Dataverse via Power Automate
   const dataversePayload = {
-    resourceName: 'Beets',
-    logicalName: 'beets',
+    resourceName: 'Carrots',
+    logicalName: 'carrot',
     quantity: amount,
     ID: Math.floor(Math.random() * 2147483647),
-    harvesterBotID: 'e3a41c89-b4f8-f011-8406-7ced8d24db72'
+    harvesterBotID: 'd7b92b3e-a2f7-f011-8406-7ced8d24db72'
   }
   await postToDataverse(webhookUrl, dataversePayload)
 }
 
 async function checkStarterKit(bot) {
-  console.log(`[farmer-beets] Checking inventory for ${bot.username}`)
+  console.log(`[farmer-carrots] Checking inventory for ${bot.username}`)
   
   // Check if bot has required items (seeds at minimum)
   const seeds = bot.inventory.items().find(item => item.name === CROP.seed)
   
   if (seeds) {
-    console.log(`[farmer-beets] ${bot.username} has ${seeds.count} ${CROP.seed}`)
-    bot.chat('Beet farmer ready!')
+    console.log(`[farmer-carrots] ${bot.username} has ${seeds.count} ${CROP.seed}`)
+    bot.chat('Carrot farmer ready!')
   } else {
-    console.log(`[farmer-beets] WARNING: ${bot.username} has no seeds! Requesting from brigadier...`)
-    bot.chat('Beet farmer ready (need beets!)')
+    console.log(`[farmer-carrots] WARNING: ${bot.username} has no carrots! Requesting from brigadier...`)
+    bot.chat('Carrot farmer ready (need carrots!)')
     await sleep(1000)
-    bot.chat('Need beetroot seeds for the collective!')
+    bot.chat('Need carrots for the collective!')
   }
   
   // Note: Brigadier bot will auto-supply if present
-  // Or manually: /give <bot_name> minecraft:beetroot_seeds 64
+  // Or manually: /give <bot_name> minecraft:carrot 64
 }
 
 function getRandomNotifyThreshold() {
@@ -128,17 +128,17 @@ async function run(state, task, options) {
       const harvestIdleMs = Date.now() - lastHarvestAt
       if (harvestCount >= nextNotifyAt && harvestIdleMs >= 5000) {
         await notifyHarvest(bot, harvestCount, options.webhookUrl)
-        bot.chat(`Harvested ${totalHarvested} beets total (${harvestCount} this session)`)
+        bot.chat(`Harvested ${totalHarvested} carrots total (${harvestCount} this session)`)
         harvestCount = 0
         nextNotifyAt = getRandomNotifyThreshold()
       }
     }
 
-    // Look for ripe beetroots
+    // Look for ripe carrots
     const ripe = findRipeCrop(bot, radius)
     if (ripe) {
       if (lastStatus !== 'harvesting') {
-        bot.chat(`Found ripe beetroots! Starting harvest.`)
+        bot.chat('Found ripe carrots! Starting harvest.')
         lastStatus = 'harvesting'
         harvestCount = 0
       }
@@ -149,7 +149,7 @@ async function run(state, task, options) {
         lastHarvestAt = Date.now()
         lastActivity = Date.now()
       } catch (error) {
-        console.log(`[farmer-beets] ${bot.username} harvest failed:`, error.message)
+        console.log(`[farmer-carrots] ${bot.username} harvest failed:`, error.message)
         await sleep(idleMs)
       }
       continue
@@ -164,7 +164,7 @@ async function run(state, task, options) {
         const seedItem = bot.inventory.items().find(item => item.name === CROP.seed)
         if (!seedItem) {
           if (lastStatus !== 'out_of_seeds') {
-            bot.chat(`Out of beetroot seeds! Need resupply!`)
+            bot.chat('Out of carrots! Need resupply!')
             lastStatus = 'out_of_seeds'
           }
           await sleep(idleMs * 5)
@@ -173,25 +173,25 @@ async function run(state, task, options) {
         
         // Announce planting status change only
         if (lastStatus !== 'planting') {
-          bot.chat(`Found farmland, starting planting (${seedItem.count} seeds available)`)
+          bot.chat(`Found farmland, starting planting (${seedItem.count} carrots available)`)
           lastStatus = 'planting'
           plantCount = 0
         }
         
-        // Equip seeds
+        // Equip carrots
         await bot.equip(bot.registry.itemsByName[CROP.seed].id, 'hand')
         
-        // Place seeds on farmland
+        // Place carrots on farmland
         await bot.placeBlock(plot, new Vec3(0, 1, 0))
         plantCount++
         lastActivity = Date.now()
         
         // Only announce every 10 plants
         if (plantCount % 10 === 0) {
-          bot.chat(`Planted ${plantCount} beets so far...`)
+          bot.chat(`Planted ${plantCount} carrots so far...`)
         }
       } catch (error) {
-        console.log(`[farmer-beets] ${bot.username} planting failed:`, error.message)
+        console.log(`[farmer-carrots] ${bot.username} planting failed:`, error.message)
         await sleep(idleMs)
       }
       continue
@@ -201,7 +201,7 @@ async function run(state, task, options) {
     searchCount++
     if (searchCount === 30) {
       const timeSinceActivity = Math.floor((Date.now() - lastActivity) / 1000)
-      bot.chat(`Searching for beet work... (idle ${timeSinceActivity}s)`)
+      bot.chat(`Searching for carrot work... (idle ${timeSinceActivity}s)`)
       lastStatus = 'searching'
       searchCount = 0
     }
@@ -210,11 +210,11 @@ async function run(state, task, options) {
   }
 
   stopMotion(bot)
-  bot.chat('Beet farming duties suspended.')
+  bot.chat('Carrot farming duties suspended.')
 }
 
 module.exports = {
-  name: 'farmer-beets',
-  label: 'Beet Farmer',
+  name: 'farmer-carrots',
+  label: 'Carrot Farmer',
   run
 }

@@ -23,11 +23,13 @@ async function notifyHarvest(bot, amount, webhookUrl) {
   bot.chat(`Harvested ${amount} ${CROP.name}`)
 
   // POST to Dataverse via Power Automate
+  const wheatBotIds = ['b7cefa7f-a2f7-f011-8406-7ced8d24db72', '9d987b4d-23f9-f011-8406-7ced8d24db72']
   const dataversePayload = {
     resourceName: 'Wheat',
     logicalName: 'wheat',
     quantity: amount,
-    ID: Math.floor(Math.random() * 2147483647)
+    ID: Math.floor(Math.random() * 2147483647),
+    harvesterBotID: wheatBotIds[Math.floor(Math.random() * wheatBotIds.length)]
   }
   await postToDataverse(webhookUrl, dataversePayload)
 }
@@ -50,6 +52,10 @@ async function checkStarterKit(bot) {
   
   // Note: Brigadier bot will auto-supply if present
   // Or manually: /give <bot_name> minecraft:wheat_seeds 64
+}
+
+function getRandomNotifyThreshold() {
+  return Math.floor(Math.random() * 50) + 1
 }
 
 function findRipeCrop(bot, radius) {
@@ -90,6 +96,8 @@ async function run(state, task, options) {
   let plantCount = 0
   let harvestCount = 0
   let totalHarvested = 0
+  let lastHarvestAt = 0
+  let nextNotifyAt = getRandomNotifyThreshold()
 
   while (!task.cancelled) {
     if (!bot.entity) {
@@ -116,6 +124,17 @@ async function run(state, task, options) {
       continue
     }
 
+    // Notify on a random harvest count only after 5s idle since last harvest
+    if (harvestCount > 0 && lastHarvestAt > 0) {
+      const harvestIdleMs = Date.now() - lastHarvestAt
+      if (harvestCount >= nextNotifyAt && harvestIdleMs >= 5000) {
+        await notifyHarvest(bot, harvestCount, options.webhookUrl)
+        bot.chat(`Harvested ${totalHarvested} wheat total (${harvestCount} this session)`)
+        harvestCount = 0
+        nextNotifyAt = getRandomNotifyThreshold()
+      }
+    }
+
     // Look for ripe wheat
     const ripe = findRipeCrop(bot, radius)
     if (ripe) {
@@ -128,12 +147,7 @@ async function run(state, task, options) {
         await bot.dig(ripe)
         harvestCount++
         totalHarvested++
-        // Only notify every 10 harvests to avoid spam
-        if (harvestCount % 10 === 0) {
-          await notifyHarvest(bot, harvestCount, options.webhookUrl)
-          bot.chat(`Harvested ${totalHarvested} wheat total (${harvestCount} this session)`)
-          harvestCount = 0
-        }
+        lastHarvestAt = Date.now()
         lastActivity = Date.now()
       } catch (error) {
         console.log(`[farmer-wheat] ${bot.username} harvest failed:`, error.message)

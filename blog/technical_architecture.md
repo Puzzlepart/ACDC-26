@@ -12,7 +12,7 @@ The bot system integrates with Microsoft Power Platform to stream harvest teleme
 │  (Node.js)      │     │  (HTTP Trigger)  │     │  (Table)    │     │           │
 └─────────────────┘     └──────────────────┘     └─────────────┘     └───────────┘
         │
-        │ POST every 10 harvests
+        │ POST every N harvests (size + wait-time batching)
         ▼
    JSON payload
 ```

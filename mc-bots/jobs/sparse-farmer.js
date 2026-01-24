@@ -1,5 +1,5 @@
 const { Vec3 } = require('vec3')
-const { sleep, stopMotion, escapeWater, postToDataverse } = require('./utils')
+const { sleep, stopMotion, escapeWater, postToDataverse, isBotConnected } = require('./utils')
 
 // Configurable crop - defaults to wheat
 const CROPS = {
@@ -19,6 +19,7 @@ function randomDirection() {
 }
 
 async function notifyHarvest(bot, crop, amount, webhookUrl) {
+  if (!isBotConnected(bot)) return
   const payload = {
     crop: crop.name,
     timestamp: Date.now(),
@@ -65,18 +66,21 @@ function findFarmland(bot, radius) {
 }
 
 async function wanderToNewArea(bot, task, duration) {
+  if (!isBotConnected(bot)) return
   const dir = randomDirection()
   await bot.look(Math.atan2(-dir.x, -dir.z), 0, false)
   await sleep(200)
 
+  if (!isBotConnected(bot)) return
   bot.setControlState('forward', true)
   const startTime = Date.now()
 
   while (!task.cancelled && Date.now() - startTime < duration) {
+    if (!isBotConnected(bot)) break
     if (bot.entity.onGround && Math.random() < 0.15) {
       bot.setControlState('jump', true)
       await sleep(100)
-      bot.setControlState('jump', false)
+      if (isBotConnected(bot)) bot.setControlState('jump', false)
     }
     await sleep(100)
   }
@@ -101,7 +105,7 @@ async function run(state, task, options) {
   bot.chat(`Sparse ${crop.name} farmer ready! Roaming far and wide.`)
 
   while (!task.cancelled) {
-    if (!bot.entity) {
+    if (!isBotConnected(bot)) {
       await sleep(500)
       continue
     }

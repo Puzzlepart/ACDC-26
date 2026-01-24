@@ -1,0 +1,46 @@
+- adx_name: Restrict Read on Dashboard
+  adx_right: 2
+  adx_scope: 1
+  adx_webpageaccesscontrolrule_webrole:
+  - 2554928c-6913-4ef1-8642-1cbadd03c2bc
+  adx_webpageaccesscontrolruleid: 191d148e-9039-0a6b-fd8d-7a4b3970ce23
+  adx_webpageid: 51df6c97-4203-d31f-fb66-753d8f0683db
+- adx_name: Restrict Read on Factories
+  adx_right: 2
+  adx_scope: 1
+  adx_webpageaccesscontrolrule_webrole:
+  - 2554928c-6913-4ef1-8642-1cbadd03c2bc
+  adx_webpageaccesscontrolruleid: 2541ab0e-7fb2-1dcb-beb5-3206f7b32cc0
+  adx_webpageid: 03deccad-16b3-4c48-b151-865e1ba76e69
+- adx_name: Restrict Read on Fields
+  adx_right: 2
+  adx_scope: 1
+  adx_webpageaccesscontrolrule_webrole:
+  - 2554928c-6913-4ef1-8642-1cbadd03c2bc
+  adx_webpageaccesscontrolruleid: 3c8c480c-5892-2c5b-148b-115b5d25fd94
+  adx_webpageid: 58f8d2ab-b130-41f8-a9b9-5817e5d65082
+- adx_name: Restrict Read on Analytics
+  adx_right: 2
+  adx_scope: 1
+  adx_webpageaccesscontrolrule_webrole:
+  - 2554928c-6913-4ef1-8642-1cbadd03c2bc
+  adx_webpageaccesscontrolruleid: 5b4413ee-f30a-3218-6635-3eb693c4cbde
+  adx_webpageid: 9e2cf7b0-31a9-43b3-8619-4910d5f8a1d5
+- adx_name: Grant Change to Content
+  adx_right: 1
+  adx_scope: 1
+  adx_webpageaccesscontrolruleid: aadc8eeb-d2cf-4e22-85dc-36650d935f57
+- adx_name: Restrict Read on Resources
+  adx_right: 2
+  adx_scope: 1
+  adx_webpageaccesscontrolrule_webrole:
+  - ae855182-fdc8-4177-b72c-74387dc4d16a
+  adx_webpageaccesscontrolruleid: cf269a6f-3f5b-928b-034b-77f1790c10df
+  adx_webpageid: fb3e4004-4206-e140-1fab-d8dd92ec1f1a
+- adx_name: Grant Change to Administrators
+  adx_right: 1
+  adx_scope: 1
+  adx_webpageaccesscontrolrule_webrole:
+  - 2554928c-6913-4ef1-8642-1cbadd03c2bc
+  adx_webpageaccesscontrolruleid: e78c6f5b-f523-4955-a2fc-7b40146273c8
+  adx_webpageid: 1246b6d2-8c74-41e7-a301-84a97494bd16

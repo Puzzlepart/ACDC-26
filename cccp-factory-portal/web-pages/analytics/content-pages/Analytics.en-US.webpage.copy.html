@@ -1,0 +1,135 @@
+<div class="container-fluid py-5" style="background: linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%); min-height: 80vh;">
+  <div class="container">
+    <!-- Page Header -->
+    <div class="text-center mb-5">
+      <h1 class="display-4 fw-bold mb-3" style="color: #991b1b;">Production Analytics</h1>
+      <p class="lead text-muted">Comprehensive insights into CCCP operational performance</p>
+    </div>
+
+    <!-- Key Metrics Row -->
+    <div class="row g-4 mb-5">
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%); color: #facc15;">
+          <div class="card-body text-center py-4">
+            <i class="fa-solid fa-chart-line fa-2x mb-3"></i>
+            <h2 class="display-5 fw-bold mb-2">156%</h2>
+            <p class="mb-0">Production Growth</p>
+            <small style="opacity: 0.8;">vs. last quarter</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%); color: #facc15;">
+          <div class="card-body text-center py-4">
+            <i class="fa-solid fa-boxes-stacked fa-2x mb-3"></i>
+            <h2 class="display-5 fw-bold mb-2">14.2K</h2>
+            <p class="mb-0">Units Produced</p>
+            <small style="opacity: 0.8;">this month</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%); color: #facc15;">
+          <div class="card-body text-center py-4">
+            <i class="fa-solid fa-gauge-high fa-2x mb-3"></i>
+            <h2 class="display-5 fw-bold mb-2">89%</h2>
+            <p class="mb-0">Efficiency Rate</p>
+            <small style="opacity: 0.8;">across all facilities</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%); color: #facc15;">
+          <div class="card-body text-center py-4">
+            <i class="fa-solid fa-users fa-2x mb-3"></i>
+            <h2 class="display-5 fw-bold mb-2">98</h2>
+            <p class="mb-0">Active Workers</p>
+            <small style="opacity: 0.8;">harvesters + factory</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+      <!-- Production Trends Chart -->
+      <div class="col-lg-8">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-body">
+            <h5 class="fw-bold mb-3" style="color: #991b1b;"><i class="fa-solid fa-chart-area me-2"></i>Production Trends</h5>
+            <div class="bg-light rounded p-5 text-center" style="min-height: 300px; display: flex; align-items: center; justify-content: center;">
+              <div>
+                <i class="fa-solid fa-chart-column fa-4x mb-3" style="color: #991b1b; opacity: 0.3;"></i>
+                <p class="text-muted mb-2">Weekly production volume across all resources</p>
+                <small class="text-muted">Line chart showing wheat, potato, and carrot output trends</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resource Distribution -->
+      <div class="col-lg-4">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-body">
+            <h5 class="fw-bold mb-3" style="color: #991b1b;"><i class="fa-solid fa-chart-pie me-2"></i>Resource Mix</h5>
+            <div class="bg-light rounded p-4 text-center" style="min-height: 300px; display: flex; align-items: center; justify-content: center;">
+              <div>
+                <i class="fa-solid fa-chart-pie fa-4x mb-3" style="color: #991b1b; opacity: 0.3;"></i>
+                <p class="text-muted mb-2">Distribution of current inventory</p>
+                <div class="mt-3">
+                  <div class="mb-2"><span style="color: #f59e0b;">●</span> Wheat 52%</div>
+                  <div class="mb-2"><span style="color: #10b981;">●</span> Potatoes 31%</div>
+                  <div class="mb-2"><span style="color: #f97316;">●</span> Carrots 17%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Table -->
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h5 class="fw-bold mb-4" style="color: #991b1b;"><i class="fa-solid fa-table me-2"></i>Factory Performance Comparison</h5>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Facility</th>
+                <th>Production This Week</th>
+                <th>Efficiency</th>
+                <th>Uptime</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="fw-semibold">Factory A</td>
+                <td>9,240 units</td>
+                <td><span class="badge bg-success">88%</span></td>
+                <td>99.2%</td>
+                <td><span class="text-success">●</span> Operational</td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Factory B</td>
+                <td>3,150 units</td>
+                <td><span class="badge bg-warning text-dark">50%</span></td>
+                <td>85.4%</td>
+                <td><span class="text-warning">●</span> Maintenance</td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">Central Bakery</td>
+                <td>12,950 units</td>
+                <td><span class="badge bg-success">93%</span></td>
+                <td>98.7%</td>
+                <td><span class="text-success">●</span> Operational</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

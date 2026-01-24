@@ -1,5 +1,5 @@
 const { Vec3 } = require('vec3')
-const { sleep, stopMotion } = require('./utils')
+const { sleep, stopMotion, isBotConnected } = require('./utils')
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min
@@ -11,8 +11,10 @@ function randomDirection() {
 }
 
 async function lookAround(bot) {
+  if (!isBotConnected(bot)) return
   const lookCount = randomInt(1, 3)
   for (let i = 0; i < lookCount; i++) {
+    if (!isBotConnected(bot)) return
     const yaw = Math.random() * Math.PI * 2
     const pitch = (Math.random() - 0.5) * 0.8
     await bot.look(yaw, pitch, false)
@@ -27,7 +29,7 @@ async function run(state, task, options) {
   let announced = false
 
   while (!task.cancelled) {
-    if (!bot.entity) {
+    if (!isBotConnected(bot)) {
       await sleep(500)
       continue
     }
@@ -56,15 +58,21 @@ async function run(state, task, options) {
       await bot.look(Math.atan2(-dir.x, -dir.z), 0, false)
       await sleep(200)
 
+      if (!isBotConnected(bot)) {
+        stopMotion(bot)
+        await sleep(idleMs)
+        continue
+      }
       bot.setControlState('forward', true)
 
       const startTime = Date.now()
       while (!task.cancelled && Date.now() - startTime < duration) {
+        if (!isBotConnected(bot)) break
         // Occasionally jump if blocked
         if (bot.entity.onGround && Math.random() < 0.1) {
           bot.setControlState('jump', true)
           await sleep(100)
-          bot.setControlState('jump', false)
+          if (isBotConnected(bot)) bot.setControlState('jump', false)
         }
         await sleep(100)
       }

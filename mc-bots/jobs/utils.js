@@ -4,8 +4,14 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+function isBotConnected(bot) {
+  if (!bot || !bot.entity) return false
+  if (bot._client && bot._client.ended) return false
+  return true
+}
+
 function stopMotion(bot) {
-  if (!bot || !bot.entity) return
+  if (!isBotConnected(bot)) return
   bot.setControlState('forward', false)
   bot.setControlState('back', false)
   bot.setControlState('left', false)
@@ -15,22 +21,24 @@ function stopMotion(bot) {
 }
 
 async function jump(bot, durationMs = 250) {
-  if (!bot || !bot.entity) return
+  if (!isBotConnected(bot)) return
   bot.setControlState('jump', true)
   await sleep(durationMs)
   bot.setControlState('jump', false)
 }
 
 async function stepToward(bot, target, durationMs = 250, allowJump = false) {
-  if (!bot || !bot.entity) return
+  if (!isBotConnected(bot)) return
   await bot.lookAt(target, true)
   bot.setControlState('forward', true)
   if (allowJump) {
     bot.setControlState('jump', true)
   }
   await sleep(durationMs)
-  bot.setControlState('forward', false)
-  bot.setControlState('jump', false)
+  if (isBotConnected(bot)) {
+    bot.setControlState('forward', false)
+    bot.setControlState('jump', false)
+  }
 }
 
 function toVec3(value, fallback) {
@@ -43,7 +51,7 @@ function toVec3(value, fallback) {
 }
 
 async function escapeWater(bot) {
-  if (!bot || !bot.entity) return false
+  if (!isBotConnected(bot)) return false
   
   // Check if bot is in water
   const block = bot.blockAt(bot.entity.position)
@@ -56,10 +64,13 @@ async function escapeWater(bot) {
     bot.setControlState('jump', true)
     bot.setControlState('forward', true)
     await sleep(100)
+    if (!isBotConnected(bot)) break
   }
   
-  bot.setControlState('jump', false)
-  bot.setControlState('forward', false)
+  if (isBotConnected(bot)) {
+    bot.setControlState('jump', false)
+    bot.setControlState('forward', false)
+  }
   
   // Check if still in water
   const blockAfter = bot.blockAt(bot.entity.position)
@@ -90,6 +101,7 @@ async function postToDataverse(webhookUrl, payload) {
 
 module.exports = {
   sleep,
+  isBotConnected,
   stopMotion,
   jump,
   stepToward,

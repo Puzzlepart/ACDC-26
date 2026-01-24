@@ -1,0 +1,16 @@
+adx_accountrelationship: 
+adx_append: true
+adx_appendto: true
+adx_contactrelationship: 
+adx_create: true
+adx_delete: true
+adx_entitylogicalname: ccc_harvestersummary
+adx_entityname: Harvester Summary | Access for Admins
+adx_entitypermission_webrole:
+- 2554928c-6913-4ef1-8642-1cbadd03c2bc
+adx_entitypermissionid: 173652b7-9dc1-4d71-8882-f2089a3e0d2a
+adx_parententitypermission: 
+adx_parentrelationship: 
+adx_read: true
+adx_scope: 756150000
+adx_write: true

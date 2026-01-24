@@ -303,6 +303,7 @@ function createViewerServer(state) {
       }
 
       if (!data || !data.type) return
+      if (!isBotConnected(state)) return
 
       if (data.type === 'control') {
         const { control, value } = data
@@ -347,8 +348,14 @@ function createViewerServer(state) {
   }
 }
 
+function isBotConnected(state) {
+  if (!state || !state.bot || !state.bot.entity) return false
+  if (state.bot._client && state.bot._client.ended) return false
+  return true
+}
+
 function stopMotion(state) {
-  if (!state || !state.bot || !state.bot.entity) return
+  if (!isBotConnected(state)) return
   state.bot.setControlState('forward', false)
   state.bot.setControlState('back', false)
   state.bot.setControlState('left', false)
@@ -365,7 +372,7 @@ function sleep(ms) {
 async function moveTo(state, task, target, range = 1.2, timeoutMs = 60000) {
   const start = Date.now()
   while (!task.cancelled) {
-    if (!state.bot.entity) throw new Error('Bot not spawned')
+    if (!isBotConnected(state)) throw new Error('Bot not connected')
     const distance = state.bot.entity.position.distanceTo(target)
     if (distance <= range) break
 
@@ -377,13 +384,14 @@ async function moveTo(state, task, target, range = 1.2, timeoutMs = 60000) {
     state.bot.setControlState('forward', true)
     const jumped = applyAutoJump(state)
     await sleep(150)
-    if (jumped) state.bot.setControlState('jump', false)
+    if (jumped && isBotConnected(state)) state.bot.setControlState('jump', false)
   }
   stopMotion(state)
 }
 
 async function followPlayer(state, task, playerName, distance = 3) {
   while (!task.cancelled) {
+    if (!isBotConnected(state)) throw new Error('Bot not connected')
     const player = state.bot.players[playerName]
     if (!player || !player.entity) {
       stopMotion(state)
@@ -399,7 +407,7 @@ async function followPlayer(state, task, playerName, distance = 3) {
       const jumped = applyAutoJump(state)
       if (jumped) {
         await sleep(150)
-        state.bot.setControlState('jump', false)
+        if (isBotConnected(state)) state.bot.setControlState('jump', false)
       }
     } else {
       stopMotion(state)
@@ -485,6 +493,7 @@ function getForwardBlockPos(bot) {
 }
 
 function applyAutoJump(state) {
+  if (!isBotConnected(state)) return false
   const bot = state.bot
   if (!CONFIG.autoJump) {
     bot.setControlState('jump', false)
@@ -520,10 +529,10 @@ function cancelActiveTask(state) {
 }
 
 async function jump(state, durationMs = 250) {
-  if (!state || !state.bot || !state.bot.entity) return
+  if (!isBotConnected(state)) return
   state.bot.setControlState('jump', true)
   await sleep(durationMs)
-  state.bot.setControlState('jump', false)
+  if (isBotConnected(state)) state.bot.setControlState('jump', false)
 }
 
 function getJobList() {
@@ -822,12 +831,28 @@ function spawnBot({ username, host, port, jobType, autoStartJob = true }) {
     stopMotion(state)
   })
 
-  bot.on('end', () => {
+  bot.on('kicked', (reason, loggedIn) => {
+    const message = typeof reason === 'string' ? reason : JSON.stringify(reason)
+    console.warn(`[remote-control] ${id} kicked (${loggedIn ? 'post-login' : 'pre-login'}): ${message}`)
+  })
+
+  bot.on('end', (reason) => {
     if (state.activeTask) state.activeTask.cancelled = true
     stopMotion(state)
     state.jobName = null
     state.jobOptions = null
     state.disconnectTime = Date.now()
+    if (reason && reason !== 'socketClosed') {
+      console.warn(`[remote-control] ${id} connection ended: ${reason}`)
+    }
+    if (state.viewerServer) {
+      try {
+        state.viewerServer.close()
+      } catch (error) {
+        console.error(`[remote-control] viewer close failed (${state.id})`, error)
+      }
+      state.viewerServer = null
+    }
     broadcastBotList()
     
     // Remove bot after 30 seconds if still disconnected
@@ -959,6 +984,7 @@ wss.on('connection', (ws, req) => {
         const { control, value } = args
         if (!control) throw new Error('control requires control name')
         stopJob(state)
+        if (!isBotConnected(state)) throw new Error('Bot not connected')
         state.bot.setControlState(control, Boolean(value))
         send(ws, { type: 'done', id })
         return
@@ -968,7 +994,7 @@ wss.on('connection', (ws, req) => {
         const state = getState(args.botId)
         stopJob(state)
         const { dx, dy, yaw, pitch, sensitivity } = args
-        if (!state.bot.entity) throw new Error('Bot not spawned')
+        if (!isBotConnected(state)) throw new Error('Bot not connected')
         if (Number.isFinite(yaw) && Number.isFinite(pitch)) {
           await state.bot.look(yaw, clamp(pitch, -1.55, 1.55), true)
           send(ws, { type: 'done', id })

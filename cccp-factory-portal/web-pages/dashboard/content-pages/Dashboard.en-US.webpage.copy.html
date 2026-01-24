@@ -1,0 +1,2746 @@
+{% include 'api-wrapper' %}
+{% fetchxml resourceData %}
+<fetch>
+  <entity name="ccc_resource">
+    <attribute name="ccc_resourceid" />
+    <attribute name="ccc_resourcename" />
+    <attribute name="ccc_quantity" />
+    <attribute name="ccc_quantitythreshold" />
+    <filter type="and">
+      <condition attribute="statecode" operator="eq" value="0" />
+    </filter>
+    <order attribute="ccc_resourcename" />
+  </entity>
+</fetch>
+{% endfetchxml %} {% fetchxml harvesterData %}
+<fetch>
+  <entity name="ccc_harvester">
+    <attribute name="ccc_harvesterid" />
+    <attribute name="ccc_name" />
+    <attribute name="ccc_harvestingresource" />
+    <filter type="and">
+      <condition attribute="statecode" operator="eq" value="0" />
+    </filter>
+    <link-entity name="ccc_resource" from="ccc_resourceid" to="ccc_harvestingresource" link-type="outer" alias="resource">
+      <attribute name="ccc_resourcename" />
+    </link-entity>
+    <order attribute="ccc_name" />
+  </entity>
+</fetch>
+{% endfetchxml %} {% fetchxml harvesterSummaryData %}
+<fetch>
+  <entity name="ccc_harvestersummary">
+    <attribute name="ccc_harvestersummaryid" />
+    <attribute name="ccc_harvester" />
+    <attribute name="ccc_resource" />
+    <attribute name="ccc_quantity" />
+    <attribute name="createdon" />
+    <filter type="and">
+      <condition attribute="statecode" operator="eq" value="0" />
+    </filter>
+    <link-entity name="ccc_resource" from="ccc_resourceid" to="ccc_resource" link-type="outer" alias="summaryresource">
+      <attribute name="ccc_resourcename" />
+    </link-entity>
+    <order attribute="createdon" descending="true" />
+  </entity>
+</fetch>
+{% endfetchxml %}
+
+<div class="cccp-dashboard-wrapper">
+  <div class="container-fluid py-4">
+    <div class="container">
+      <!-- Quota Cards Row -->
+      <div class="row g-4 mb-4">
+        {% if resourceData.results.entities.size > 0 %} {% for resource in resourceData.results.entities %} {% assign resourceName = resource.ccc_resourcename | downcase %} {% assign quantity = resource.ccc_quantity | default: 0 %} {% assign threshold = resource.ccc_quantitythreshold | default: 1 %} {% assign percentage = quantity | times: 100.0 | divided_by: threshold | at_least: 0 | at_most: 100 %} {% assign outputRate = threshold | times: 1.0 | divided_by: 200 | at_least: 1 %} {% comment %}Map resource names to display properties{% endcomment %} {% case resourceName %} {% when 'wheat' %} {% assign icon = '🌾' %} {% assign color = 'var(--cccp-wheat)' %} {% assign cssClass = 'wheat' %} {% when 'potatoes' %} {% assign icon = '🥔' %} {% assign color = 'var(--cccp-potato)' %} {% assign cssClass = 'potato' %} {% when 'carrots' %} {% assign icon = '🥕' %} {% assign color = '#f97316' %} {% assign cssClass = 'carrot' %} {% else %} {% assign icon = '📦' %} {% assign color = '#6b7280' %} {% assign cssClass = 'default' %} {% endcase %}
+
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card cccp-card cccp-card-{{ cssClass }} h-100 shadow-sm">
+            <div class="cccp-card-body">
+              <div class="d-flex align-items-center mb-2">
+                <span class="me-2" style="font-size: 1.5rem;">{{ icon }}</span>
+                <h5 class="card-title mb-0 fw-bold">{{ resource.ccc_resourcename }} Quota</h5>
+              </div>
+              <div class="cccp-quota-number">
+                <span style="color: {{ color }};">{{ quantity | round }}</span>
+                <span class="text-muted" style="font-size: 1.5rem;">/ {{ threshold | round }}</span>
+              </div>
+              <div role="progressbar" aria-valuenow="{{ percentage | round }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ resource.ccc_resourcename }} quota progress" class="progress cccp-progress-bar cccp-progress-{{ cssClass }} mb-2">
+                <div class="progress-bar" style="width: {{ percentage | round }}%;"></div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="badge cccp-badge-{{ cssClass }}">{{ percentage | round }}%</span>
+                <small class="text-muted">Output: +{{ outputRate | round }} / min</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %} {% else %} {% comment %}Fallback if no data available{% endcomment %}
+        <div class="col-12">
+          <div class="alert alert-warning">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+            No resource data available. Please ensure resources are configured in Dataverse.
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <!-- Operational Panels Row -->
+      <div class="row g-4 mb-4">
+        <!-- Order Queue Panel -->
+        <div class="col-12 col-lg-4">
+          <div class="card cccp-card h-100 shadow-sm">
+            <div class="cccp-card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Recent Orders</h5>
+                <span id="orderCountBadge" class="badge bg-danger" style="display: none;"></span>
+              </div>
+            </div>
+            <div class="p-0" id="recentOrdersContainer">
+              <!-- Loading state -->
+              <div class="cccp-list-item text-center">
+                <div class="spinner-border spinner-border-sm text-danger" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mb-0 small text-muted mt-2">Loading orders...</p>
+              </div>
+            </div>
+            <div class="card-footer bg-white border-top">
+              <button type="button" class="btn btn-outline-secondary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#allOrdersModal">
+                <i class="fa-solid fa-list me-2"></i>Show All Orders
+              </button>
+              <a href="/resources" class="btn btn-outline-primary w-100">
+                <i class="fa-solid fa-plus me-2"></i>Place New Order
+              </a>
+            </div>
+          </div>
+        </div>
+        <!-- Field Status Panel -->
+        <div class="col-12 col-lg-4">
+          <div class="card cccp-card h-100 shadow-sm">
+            <div class="cccp-card-header"><h5 class="mb-0 fw-bold">Field Status</h5></div>
+            <div class="cccp-card-body d-flex flex-column p-0">
+              <iframe id="viewer" title="CrayCon Farms Cam" data-src="https://cam.craycon.no" src="https://cam.craycon.no" class="rounded-bottom" style="width: 100%; flex-grow: 1; border: none; min-height: 350px;"></iframe>
+              <div class="p-3 border-top">
+                <button type="button" class="btn w-100" id="expandFieldViewBtn" style="background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%); color: white; font-weight: 600; border: none; padding: 0.75rem; border-radius: 8px; transition: all 0.2s;">
+                  <i class="fa-solid fa-expand me-2"></i>Expand Field View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Harvesters Panel -->
+        <div class="col-12 col-lg-4">
+          <div class="card cccp-card h-100 shadow-sm">
+            <div class="cccp-card-header"><h5 class="mb-0 fw-bold">Harvesters</h5></div>
+            <div class="cccp-card-body">
+              {% if harvesterData.results.entities.size > 0 %} {% for harvester in harvesterData.results.entities %} {% assign harvesterName = harvester.ccc_name %} {% assign resourceName = harvester['resource.ccc_resourcename'] | default: '' %} {% assign resourceNameLower = resourceName | downcase %} {% comment %}Rotate between villager avatars{% endcomment %} {% assign avatarIndex = forloop.index | modulo: 2 %} {% if avatarIndex == 0 %} {% assign avatarImage = 'villager-2.png' %} {% else %} {% assign avatarImage = 'villager-1.png' %} {% endif %} {% comment %}Map resource to avatar border color{% endcomment %} {% case resourceNameLower %} {% when 'wheat' %} {% assign borderColor = 'border-warning' %} {% when 'potatoes', 'potato' %} {% assign borderColor = 'border-success' %} {% when 'carrots', 'carrot' %} {% assign borderColor = 'border-danger' %} {% else %} {% assign borderColor = 'border-secondary' %} {% endcase %}
+
+              <div class="d-flex align-items-start {% if forloop.last %}mb-0{% else %}mb-3{% endif %}">
+                <div class="cccp-avatar-circle {{ borderColor }} me-3 p-0 overflow-hidden">
+                  <img src="/{{ avatarImage }}" alt="{{ harvesterName }}" class="w-100 h-100" style="object-fit: cover;" />
+                </div>
+                <div class="flex-grow-1">
+                  <div class="fw-semibold">{{ harvesterName }}</div>
+                  <small class="text-muted">{% if resourceName != '' %}Currently harvesting {{ resourceName }}{% else %}Idle{% endif %}</small>
+                </div>
+              </div>
+              {% endfor %} {% else %}
+              <div class="alert alert-info mb-0">
+                <i class="fa-solid fa-circle-info me-2"></i>
+                No harvesters currently assigned.
+              </div>
+              {% endif %}
+            </div>
+            <div class="card-footer bg-white border-top"><button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#harvestersModal">View All Harvesters</button></div>
+          </div>
+        </div>
+      </div>
+      <!-- Production Summary & Alerts Row -->
+      <div class="row g-4">
+        <!-- Production Summary -->
+        <div class="col-12 col-lg-8">
+          <div class="card cccp-card shadow-sm">
+            <div class="cccp-card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Order Analytics</h5>
+                <span class="badge bg-white text-dark border" style="font-size: 0.75rem;">Last 30 Days</span>
+              </div>
+            </div>
+            <div class="cccp-card-body">
+              <div id="orderAnalyticsContent">
+                <div class="text-center py-5">
+                  <div class="spinner-border text-danger" role="status" style="width: 2rem; height: 2rem;">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <p class="text-muted mt-2 mb-0 small">Loading analytics...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Incidents Panel -->
+        <div class="col-12 col-lg-4">
+          <div class="card cccp-card cccp-card-alert shadow-sm">
+            <div class="cccp-card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">Recent Incidents</h5>
+                <span class="badge bg-white text-dark border" style="font-size: 0.7rem;">Last 7 Days</span>
+              </div>
+            </div>
+            <div class="p-0" id="incidentsContainer">
+              <div class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-danger" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted mt-2 mb-0 small">Loading incidents...</p>
+              </div>
+            </div>
+            <div class="card-footer bg-white border-top">
+              <button type="button" class="btn btn-outline-secondary w-100" id="showAllIncidentsBtn">
+                <i class="fa-solid fa-list me-2"></i>Show All Incidents
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content cccp-modal">
+      <div class="modal-header cccp-modal-header">
+        <h5 class="modal-title fw-bold" id="orderDetailsModalLabel" style="color: white;">
+          <i class="fa-solid fa-receipt me-2"></i>Order Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body cccp-modal-body">
+        <!-- Loading State -->
+        <div id="orderLoadingState" class="text-center py-5">
+          <div class="spinner-border" style="width: 3rem; height: 3rem; color: #991b1b;">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="text-muted mt-3 fw-semibold">Loading order details...</p>
+        </div>
+        
+        <!-- Order Content -->
+        <div id="orderDetailsContent" style="display: none;">
+          <!-- Order Header Info -->
+          <div class="cccp-order-info-card mb-4">
+            <h6 class="cccp-section-title mb-3">
+              <i class="fa-solid fa-info-circle me-2"></i>Order Information
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="cccp-info-item">
+                  <span class="cccp-info-label">Order Name</span>
+                  <span class="cccp-info-value" id="orderNameDisplay">-</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="cccp-info-item">
+                  <span class="cccp-info-label">Order Date</span>
+                  <span class="cccp-info-value" id="orderDateDisplay">-</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="cccp-info-item">
+                  <span class="cccp-info-label">Customer</span>
+                  <span class="cccp-info-value" id="orderContactDisplay">-</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="cccp-info-item">
+                  <span class="cccp-info-label">Total Items</span>
+                  <span class="cccp-info-value" id="orderTotalItems">-</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="cccp-info-item">
+                  <span class="cccp-info-label">Status</span>
+                  <span class="cccp-info-value" id="orderStatusDisplay">-</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Order Lines -->
+          <div class="cccp-order-lines-card">
+            <h6 class="cccp-section-title mb-3">
+              <i class="fa-solid fa-list me-2"></i>Order Lines
+            </h6>
+            <div class="cccp-order-lines-list" id="orderLinesContainer">
+              <!-- Populated by JavaScript -->
+            </div>
+            <div class="cccp-modal-divider my-3"></div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold" style="font-size: 1.15rem; color: #1f2937;">Grand Total:</span>
+              <span id="orderGrandTotal" class="cccp-total-price">-</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Error State -->
+        <div id="orderErrorState" style="display: none;" class="text-center py-5">
+          <i class="fa-solid fa-exclamation-triangle mb-3" style="font-size: 3rem; color: #991b1b;"></i>
+          <p class="text-muted fw-semibold">Failed to load order details. Please try again.</p>
+          <button type="button" class="btn cccp-btn-cancel mt-3" data-bs-dismiss="modal">
+            <i class="fa-solid fa-times me-2"></i>Close
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer cccp-modal-footer">
+        <button type="button" class="btn cccp-btn-cancel" data-bs-dismiss="modal">
+          <i class="fa-solid fa-times me-2"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Harvesters Modal -->
+<div class="modal fade" id="harvestersModal" tabindex="-1" aria-labelledby="harvestersModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content cccp-modal">
+      <div class="modal-header cccp-modal-header">
+        <h5 class="modal-title fw-bold" id="harvestersModalLabel">
+          <i class="fa-solid fa-tractor me-2"></i>All Harvesters
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body cccp-modal-body">
+        {% if harvesterData.results.entities.size > 0 %}
+          <!-- Stats Summary -->
+          <div class="cccp-stats-summary mb-4">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="cccp-stat-card">
+                  <div class="cccp-stat-icon">
+                    <i class="fa-solid fa-users"></i>
+                  </div>
+                  <div class="cccp-stat-content">
+                    <div class="cccp-stat-value">{{ harvesterData.results.entities.size }}</div>
+                    <div class="cccp-stat-label">Total Harvesters</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="cccp-stat-card">
+                  <div class="cccp-stat-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                  </div>
+                  <div class="cccp-stat-content">
+                    {% assign activeCount = 0 %}
+                    {% for harvester in harvesterData.results.entities %}
+                      {% if harvester['resource.ccc_resourcename'] != '' %}
+                        {% assign activeCount = activeCount | plus: 1 %}
+                      {% endif %}
+                    {% endfor %}
+                    <div class="cccp-stat-value">{{ activeCount }}</div>
+                    <div class="cccp-stat-label">Active Now</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="cccp-stat-card">
+                  <div class="cccp-stat-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                  </div>
+                  <div class="cccp-stat-content">
+                    {% if harvesterData.results.entities.size > 0 %}
+                      {% assign efficiency = activeCount | times: 100.0 | divided_by: harvesterData.results.entities.size | round %}
+                    {% else %}
+                      {% assign efficiency = 0 %}
+                    {% endif %}
+                    <div class="cccp-stat-value">{{ efficiency }}%</div>
+                    <div class="cccp-stat-label">Efficiency</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Harvester Cards -->
+          {% for harvester in harvesterData.results.entities %}
+            {% assign harvesterName = harvester.ccc_name %}
+            {% assign harvesterId = harvester.ccc_harvesterid %}
+            {% assign resourceName = harvester['resource.ccc_resourcename'] | default: '' %}
+            {% assign resourceNameLower = resourceName | downcase %}
+            
+            {% comment %}Rotate between villager avatars{% endcomment %}
+            {% assign avatarIndex = forloop.index | modulo: 2 %}
+            {% if avatarIndex == 0 %}
+              {% assign avatarImage = 'villager-2.png' %}
+            {% else %}
+              {% assign avatarImage = 'villager-1.png' %}
+            {% endif %}
+            
+            {% comment %}Determine resource icon and color{% endcomment %}
+            {% if resourceNameLower contains 'wheat' %}
+              {% assign resourceIcon = '🌾' %}
+              {% assign resourceBadgeClass = 'cccp-badge-wheat' %}
+            {% elsif resourceNameLower contains 'potato' %}
+              {% assign resourceIcon = '🥔' %}
+              {% assign resourceBadgeClass = 'cccp-badge-potato' %}
+            {% elsif resourceNameLower contains 'carrot' %}
+              {% assign resourceIcon = '🥕' %}
+              {% assign resourceBadgeClass = 'cccp-badge-carrot' %}
+            {% else %}
+              {% assign resourceIcon = '💤' %}
+              {% assign resourceBadgeClass = 'cccp-badge-idle' %}
+            {% endif %}
+
+            <div class="cccp-harvester-card mb-3">
+              <div class="cccp-harvester-content">
+                <div class="row">
+                  <!-- Avatar Section -->
+                  <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
+                    <div class="cccp-harvester-avatar-wrapper">
+                      <div class="cccp-harvester-avatar mx-auto">
+                        <img src="/{{ avatarImage }}" alt="{{ harvesterName }}" />
+                        <div class="cccp-harvester-status {% if resourceName != '' %}cccp-status-active{% else %}cccp-status-idle{% endif %}">
+                          {% if resourceName != '' %}
+                            <i class="fa-solid fa-check"></i>
+                          {% else %}
+                            <i class="fa-solid fa-pause"></i>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    <h5 class="mt-3 mb-2 fw-bold" style="color: #1f2937;">{{ harvesterName }}</h5>
+                    <span class="cccp-resource-badge {{ resourceBadgeClass }}">
+                      <span class="me-2">{{ resourceIcon }}</span>
+                      {% if resourceName != '' %}{{ resourceName }}{% else %}Idle{% endif %}
+                    </span>
+                  </div>
+                  
+                  <!-- Activity Log Section -->
+                  <div class="col-12 col-md-8">
+                    <div class="cccp-activity-header mb-3">
+                      <h6 class="cccp-section-title mb-0">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i>Recent Activity
+                      </h6>
+                    </div>
+                    
+                    <!-- Activity container populated by JavaScript -->
+                    <div class="cccp-harvester-activity-container" data-harvester-id="{{ harvesterId }}">
+                      <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm" style="color: #991b1b;" role="status">
+                          <span class="visually-hidden">Loading...</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Status Toggle Button -->
+                <div class="cccp-harvester-footer">
+                  <button 
+                    class="btn cccp-btn-toggle-status" 
+                    data-harvester-id="{{ harvesterId }}"
+                    data-harvester-name="{{ harvesterName }}"
+                    data-statecode="0"
+                    title="Toggle harvester status">
+                    <i class="fa-solid fa-power-off me-2"></i>Set to Idle
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="cccp-empty-state-large">
+            <i class="fa-solid fa-tractor mb-3" style="font-size: 4rem; color: #d1d5db;"></i>
+            <h5 class="fw-bold mb-2" style="color: #6b7280;">No Harvesters Available</h5>
+            <p class="text-muted mb-0">No harvesters are currently assigned to the system.</p>
+          </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer cccp-modal-footer">
+        <button type="button" class="btn cccp-btn-cancel" data-bs-dismiss="modal">
+          <i class="fa-solid fa-times me-2"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- All Orders Modal -->
+<div class="modal fade" id="allOrdersModal" tabindex="-1" aria-labelledby="allOrdersModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content cccp-modal">
+      <div class="modal-header cccp-modal-header">
+        <h5 class="modal-title fw-bold" id="allOrdersModalLabel">
+          <i class="fa-solid fa-list-check me-2"></i>All Orders
+        </h5>
+        <button id="refreshAllOrdersBtn" class="btn cccp-refresh-btn ms-auto" title="Refresh orders">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+      <div class="modal-body cccp-modal-body">
+        <!-- Loading State -->
+        <div id="allOrdersLoadingState" class="text-center py-5">
+          <div class="spinner-border" style="width: 3rem; height: 3rem; color: #991b1b;">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="text-muted mt-3 fw-semibold">Loading all orders...</p>
+        </div>
+        
+        <!-- Orders Content -->
+        <div id="allOrdersContent" style="display: none;">
+          <!-- Orders will be populated here -->
+        </div>
+        
+        <!-- Empty State -->
+        <div id="allOrdersEmptyState" style="display: none;" class="text-center py-5">
+          <i class="fa-solid fa-inbox mb-3" style="font-size: 4rem; color: #d1d5db;"></i>
+          <h5 class="fw-bold mb-2" style="color: #6b7280;">No Orders Found</h5>
+          <p class="text-muted mb-4">You haven't placed any orders yet.</p>
+          <a href="/resources" class="btn cccp-btn-confirm">
+            <i class="fa-solid fa-plus me-2"></i>Place Your First Order
+          </a>
+        </div>
+        
+        <!-- Error State -->
+        <div id="allOrdersErrorState" style="display: none;" class="text-center py-5">
+          <i class="fa-solid fa-exclamation-triangle mb-3" style="font-size: 3rem; color: #ef4444;"></i>
+          <p class="text-muted fw-semibold">Failed to load orders. Please try again.</p>
+          <button type="button" class="btn cccp-btn-confirm mt-3" onclick="document.querySelector('#allOrdersModal').dispatchEvent(new Event('shown.bs.modal'))">
+            <i class="fa-solid fa-rotate-right me-2"></i>Retry
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer cccp-modal-footer">
+        <button type="button" class="btn cccp-btn-cancel" data-bs-dismiss="modal">
+          <i class="fa-solid fa-times me-2"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- All Incidents Modal -->
+<div class="modal fade" id="allIncidentsModal" tabindex="-1" aria-labelledby="allIncidentsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content cccp-modal">
+      <div class="modal-header cccp-modal-header">
+        <h5 class="modal-title fw-bold" id="allIncidentsModalLabel" style="color: white;">
+          <i class="fa-solid fa-triangle-exclamation me-2"></i>All Incidents
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body cccp-modal-body">
+        <!-- Loading State -->
+        <div id="allIncidentsLoadingState" class="text-center py-5">
+          <div class="spinner-border" style="width: 3rem; height: 3rem; color: #991b1b;">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="text-muted mt-3 fw-semibold">Loading incidents...</p>
+        </div>
+        
+        <!-- Incidents Content -->
+        <div id="allIncidentsContent" style="display: none;">
+          <!-- Populated by JavaScript -->
+        </div>
+        
+        <!-- Empty State -->
+        <div id="allIncidentsEmptyState" style="display: none;" class="text-center py-5">
+          <i class="fa-solid fa-check-circle" style="font-size: 4rem; color: #10b981; opacity: 0.5;"></i>
+          <p class="fw-semibold mt-3" style="color: #1f2937;">No incidents reported</p>
+          <small class="text-muted">All systems operational in the last 7 days</small>
+        </div>
+        
+        <!-- Error State -->
+        <div id="allIncidentsErrorState" style="display: none;" class="text-center py-5">
+          <i class="fa-solid fa-exclamation-triangle mb-3" style="font-size: 3rem; color: #991b1b;"></i>
+          <p class="text-muted fw-semibold">Failed to load incidents. Please try again.</p>
+        </div>
+      </div>
+      <div class="modal-footer cccp-modal-footer">
+        <button type="button" class="btn cccp-btn-cancel" data-bs-dismiss="modal">
+          <i class="fa-solid fa-times me-2"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Field View Modal -->
+<div class="modal fade" id="fieldViewModal" tabindex="-1" aria-labelledby="fieldViewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content" style="background: #1f2937;">
+      <div class="modal-header border-0" style="background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%); padding: 1.5rem 2rem;">
+        <h5 class="modal-title fw-bold text-white" id="fieldViewModalLabel">
+          <i class="fa-solid fa-video me-2"></i>Live Field Camera Feed
+        </h5>
+        <button type="button" class="btn btn-sm text-white" data-bs-dismiss="modal" aria-label="Minimize" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); font-weight: 600; padding: 0.5rem 1rem;">
+          <i class="fa-solid fa-compress me-2"></i>Minimize Field View
+        </button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-4 h-100">
+          <!-- Camera Feed -->
+          <div class="col-lg-9">
+            <div class="h-100 d-flex flex-column">
+              <iframe 
+                id="expandedViewer" 
+                title="CrayCon Farms Cam - Expanded View" 
+                src="https://cam.craycon.no" 
+                class="rounded shadow-lg"
+                style="width: 100%; flex-grow: 1; border: 3px solid #facc15; min-height: 500px; background: #000;">
+              </iframe>
+              <div class="mt-3 d-flex justify-content-between align-items-center">
+                <div class="text-white">
+                  <small class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">
+                      <i class="fa-solid fa-circle me-1" style="font-size: 0.6rem;"></i>LIVE
+                    </span>
+                    CrayCon Farms - Field Monitor
+                  </small>
+                </div>
+                <div>
+                  <span class="badge" style="background: rgba(255,255,255,0.1); color: white; padding: 0.5rem 1rem;">
+                    <i class="fa-solid fa-clock me-2"></i>
+                    <span id="liveTime">--:--</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Harvest Log Sidebar -->
+          <div class="col-lg-3">
+            <div class="h-100 d-flex flex-column">
+              <div class="mb-3 d-flex justify-content-between align-items-center">
+                <h6 class="text-white fw-bold mb-0 pb-2" style="border-bottom: 2px solid #facc15; flex-grow: 1;">
+                  <i class="fa-solid fa-clipboard-list me-2"></i>Harvest Log
+                </h6>
+                <button id="refreshHarvestLogBtn" class="btn btn-sm ms-2" style="background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.3); color: #facc15; padding: 0.25rem 0.5rem;" title="Refresh harvest log">
+                  <i class="fa-solid fa-rotate-right"></i>
+                </button>
+              </div>
+              
+              <!-- Loading State -->
+              <div id="harvestLogLoading" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm" style="color: #facc15;">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-white-50 small mt-2 mb-0">Loading harvest data...</p>
+              </div>
+              
+              <!-- Harvest Log Content -->
+              <div id="harvestLogContent" style="display: none;" class="flex-grow-1 overflow-auto" style="max-height: 600px;">
+                <!-- Will be populated by JavaScript -->
+              </div>
+              
+              <!-- Empty State -->
+              <div id="harvestLogEmpty" style="display: none;" class="text-center py-4">
+                <i class="fa-solid fa-inbox text-white-50" style="font-size: 2rem;"></i>
+                <p class="text-white-50 small mt-2 mb-0">No harvest activity found</p>
+              </div>
+              
+              <div class="mt-auto pt-3">
+                <div class="p-3 rounded" style="background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.3);">
+                  <div class="d-flex align-items-start">
+                    <i class="fa-solid fa-info-circle me-2 mt-1" style="color: #facc15;"></i>
+                    <div>
+                      <div class="text-white fw-semibold small mb-1">Camera Info</div>
+                      <div class="text-white-50" style="font-size: 0.75rem; line-height: 1.5;">
+                        Real-time monitoring of field conditions. Camera updates every 30 seconds.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row sectionBlockLayout text-start" style="display: flex; flex-wrap: wrap; margin: 0px; min-height: auto; padding: 8px;">
+  <div class="container" style="padding: 0px; display: flex; flex-wrap: wrap;"><div class="col-lg-12 columnBlockLayout" style="flex-grow: 1; display: flex; flex-direction: column; min-width: 250px;"></div></div>
+</div>
+
+<script src="/utils.js"></script>
+
+<script>
+// Update live time every second
+setInterval(() => {
+  const now = new Date();
+  const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const liveTimeEl = document.getElementById('liveTime');
+  if (liveTimeEl) {
+    liveTimeEl.textContent = timeString;
+  }
+}, 1000);
+
+// ============================================================================
+// DASHBOARD - RECENT ORDERS LOADING
+// ============================================================================
+(function() {
+  'use strict';
+  
+  const recentOrdersContainer = document.getElementById('recentOrdersContainer');
+  const orderCountBadge = document.getElementById('orderCountBadge');
+  
+  if (!recentOrdersContainer) return;
+  
+  /**
+   * Load recent orders from API
+   */
+  async function loadRecentOrders() {
+    try {
+      // Fetch recent 3 orders
+      const url = '/_api/ccc_orders'
+        + '?$select=ccc_orderid,ccc_ordername,ccc_orderdate,createdon,statuscode'
+        + '&$expand=ccc_ordercontact($select=fullname)'
+        + '&$orderby=createdon desc'
+        + '&$top=3';
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const orders = data.value || [];
+      
+      renderRecentOrders(orders);
+      
+    } catch (error) {
+      console.error('Failed to load recent orders:', error);
+      recentOrdersContainer.innerHTML = `
+        <div class="cccp-list-item text-center">
+          <div class="text-danger">
+            <i class="fa-solid fa-exclamation-triangle mb-2" style="font-size: 1.5rem;"></i>
+            <p class="mb-0 small">Failed to load orders</p>
+          </div>
+        </div>
+      `;
+    }
+  }
+  
+  /**
+   * Render orders to the container
+   * @param {Array} orders - Array of order objects
+   */
+  function renderRecentOrders(orders) {
+    if (orders.length === 0) {
+      recentOrdersContainer.innerHTML = `
+        <div class="cccp-list-item text-center">
+          <div class="text-muted">
+            <i class="fa-solid fa-inbox mb-2" style="font-size: 2rem; opacity: 0.3;"></i>
+            <p class="mb-0 small">No orders yet</p>
+          </div>
+        </div>
+      `;
+      orderCountBadge.style.display = 'none';
+      return;
+    }
+    
+    // Update badge count
+    orderCountBadge.textContent = orders.length;
+    orderCountBadge.style.display = 'inline-block';
+    
+    // Render order items
+    const ordersHtml = orders.map(order => {
+      const orderName = order.ccc_ordername || 'Unknown Order';
+      const orderDate = order.ccc_orderdate || order.createdon;
+      const contactName = order.ccc_ordercontact?.fullname || 'Guest';
+      const orderId = order.ccc_orderid;
+      
+      // Determine icon based on order name
+      const orderNameLower = orderName.toLowerCase();
+      let orderIcon = '📦';
+      if (orderNameLower.includes('wheat')) orderIcon = '🌾';
+      else if (orderNameLower.includes('potato')) orderIcon = '🥔';
+      else if (orderNameLower.includes('carrot')) orderIcon = '🥕';
+      
+      // Format date
+      const date = new Date(orderDate);
+      const formattedDate = date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      
+      return `
+        <div class="cccp-list-item d-flex align-items-start">
+          <span class="me-3" style="font-size: 1.25rem;">${orderIcon}</span>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+              <div class="fw-semibold">${orderName}</div>
+              <button 
+                class="btn btn-sm btn-outline-danger cccp-view-order-btn" 
+                data-order-id="${orderId}"
+                style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+            <small class="text-muted d-block">By: ${contactName}</small>
+            <small class="text-muted">${formattedDate}</small>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    recentOrdersContainer.innerHTML = ordersHtml;
+  }
+  
+  // Load orders when page loads
+  loadRecentOrders();
+  
+  // Listen for order created events to refresh the list
+  document.addEventListener('order:created', function() {
+    console.log('Order created event received, refreshing recent orders...');
+    loadRecentOrders();
+  });
+})();
+
+// ============================================================================
+// DASHBOARD - ORDER DETAILS FUNCTIONALITY
+// ============================================================================
+(function() {
+  'use strict';
+  
+  const orderDetailsModal = document.getElementById('orderDetailsModal');
+  if (!orderDetailsModal) return;
+  
+  // Handle view order button clicks
+  document.addEventListener('click', async function(e) {
+    const viewBtn = e.target.closest('.cccp-view-order-btn');
+    if (!viewBtn) return;
+    
+    const orderId = viewBtn.dataset.orderId;
+    if (!orderId) return;
+    
+    // Close All Orders modal if it's open
+    const allOrdersModal = document.getElementById('allOrdersModal');
+    if (allOrdersModal) {
+      const allOrdersModalInstance = bootstrap.Modal.getInstance(allOrdersModal);
+      if (allOrdersModalInstance) {
+        allOrdersModalInstance.hide();
+      }
+    }
+    
+    // Show modal
+    const modal = new bootstrap.Modal(orderDetailsModal);
+    modal.show();
+    
+    // Reset states
+    document.getElementById('orderLoadingState').style.display = 'block';
+    document.getElementById('orderDetailsContent').style.display = 'none';
+    document.getElementById('orderErrorState').style.display = 'none';
+    
+    try {
+      // Fetch order details using utils.js
+      const { order, orderLines } = await ProjectUtils.ApiUtils.getOrderDetails(orderId);
+      
+      console.log('Order details loaded:', order);
+      console.log('Order lines:', orderLines);
+      
+      // Populate order info
+      document.getElementById('orderNameDisplay').textContent = order.ccc_ordername || 'Unknown Order';
+      
+      // Format date
+      let orderDate = order.ccc_orderdate || order.createdon;
+      if (orderDate) {
+        const date = new Date(orderDate);
+        orderDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      }
+      document.getElementById('orderDateDisplay').textContent = orderDate || '-';
+      
+      // Contact info
+      const contactName = order.ccc_ordercontact?.fullname || 'Guest';
+      const contactEmail = order.ccc_ordercontact?.emailaddress1 || '';
+      document.getElementById('orderContactDisplay').textContent = contactName;
+      if (contactEmail) {
+        document.getElementById('orderContactDisplay').innerHTML = `${contactName}<br><small class="text-muted">${contactEmail}</small>`;
+      }
+      
+      // Total items count
+      const totalItems = orderLines.reduce((sum, line) => sum + (line.ccc_quantity || 0), 0);
+      document.getElementById('orderTotalItems').textContent = totalItems;
+      
+      // Order status - display as badge with conditional color
+      const statusLabel = order['statuscode@OData.Community.Display.V1.FormattedValue'] || 'Unknown';
+      const statusLower = statusLabel.toLowerCase();
+      let statusGradient, statusIcon;
+      if (statusLower.includes('reject') || statusLower.includes('cancel')) {
+        statusGradient = 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)';
+        statusIcon = 'fa-circle-xmark';
+      } else if (statusLower.includes('pending') || statusLower.includes('wait')) {
+        statusGradient = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+        statusIcon = 'fa-clock';
+      } else if (statusLower.includes('sign') || statusLower.includes('complete') || statusLower.includes('success') || statusLower.includes('approve')) {
+        statusGradient = 'linear-gradient(135deg, #34d399 0%, #10b981 100%)';
+        statusIcon = 'fa-circle-check';
+      } else {
+        statusGradient = 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)';
+        statusIcon = 'fa-circle-info';
+      }
+      const statusBadge = `<span class="badge" style="background: ${statusGradient}; padding: 0.4rem 0.75rem; font-size: 0.875rem;">
+        <i class="fa-solid ${statusIcon} me-1"></i>${statusLabel}
+      </span>`;
+      document.getElementById('orderStatusDisplay').innerHTML = statusBadge;
+      
+      // Populate order lines
+      const container = document.getElementById('orderLinesContainer');
+      container.innerHTML = '';
+      
+      let grandTotal = 0;
+      
+      orderLines.forEach(line => {
+        const resourceName = line.ccc_resource?.ccc_resourcename || 'Unknown';
+        const quantity = line.ccc_quantity || 0;
+        const pricePerUnit = line.ccc_resource?.ccc_priceperunit || 0;
+        const lineTotal = line.ccc_orderlineprice || (quantity * pricePerUnit);
+        grandTotal += lineTotal;
+        
+        // Determine icon
+        let icon = '📦';
+        const resNameLower = resourceName.toLowerCase();
+        if (resNameLower.includes('wheat')) icon = '🌾';
+        else if (resNameLower.includes('potato')) icon = '🥔';
+        else if (resNameLower.includes('carrot')) icon = '🥕';
+        
+        const lineItem = document.createElement('div');
+        lineItem.className = 'cccp-order-line-item';
+        lineItem.innerHTML = `
+          <div class="d-flex align-items-center mb-2">
+            <span class="me-3" style="font-size: 1.5rem;">${icon}</span>
+            <div class="flex-grow-1">
+              <div class="fw-bold" style="color: #1f2937;">${resourceName}</div>
+              <small class="text-muted">$${pricePerUnit.toFixed(2)} per unit</small>
+            </div>
+            <span class="badge bg-secondary" style="padding: 0.5rem 0.75rem; font-size: 0.875rem;">×${quantity}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center pt-2" style="border-top: 1px dashed #e5e7eb;">
+            <span class="text-muted">Line Total:</span>
+            <span class="fw-bold" style="color: #991b1b; font-size: 1.1rem;">$${lineTotal.toFixed(2)}</span>
+          </div>
+        `;
+        container.appendChild(lineItem);
+      });
+      
+      // Update grand total
+      document.getElementById('orderGrandTotal').textContent = `$${grandTotal.toFixed(2)}`;
+      
+      // Show content
+      document.getElementById('orderLoadingState').style.display = 'none';
+      document.getElementById('orderDetailsContent').style.display = 'block';
+      
+    } catch (error) {
+      console.error('Failed to load order details:', error);
+      document.getElementById('orderLoadingState').style.display = 'none';
+      document.getElementById('orderErrorState').style.display = 'block';
+    }
+  });
+})();
+
+// ============================================================================
+// DASHBOARD - HARVESTER ACTIVITY FUNCTIONALITY
+// ============================================================================
+(function() {
+  'use strict';
+  
+  const harvestersModal = document.getElementById('harvestersModal');
+  if (!harvestersModal) return;
+  
+  // Function to fetch and display harvester activity
+  async function loadHarvesterActivity(harvesterId, container) {
+    try {
+      // Use utility method to fetch harvester activity
+      const activities = await ProjectUtils.ApiUtils.getHarvesterActivity(harvesterId, 5);
+      
+      // Clear loading state
+      container.innerHTML = '';
+      
+      if (activities.length > 0) {
+        // Create activity list
+        const activityList = document.createElement('div');
+        activityList.className = 'cccp-activity-list';
+        
+        activities.forEach(activity => {
+          const resourceName = activity.ccc_resource?.ccc_resourcename || 'Unknown';
+          const quantity = activity.ccc_quantity || 0;
+          const date = new Date(activity.createdon);
+          const formattedDate = date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          // Determine icon
+          let icon = '📦';
+          const resNameLower = resourceName.toLowerCase();
+          if (resNameLower.includes('wheat')) icon = '🌾';
+          else if (resNameLower.includes('potato')) icon = '🥔';
+          else if (resNameLower.includes('carrot')) icon = '🥕';
+          
+          const activityItem = document.createElement('div');
+          activityItem.className = 'cccp-activity-item';
+          activityItem.innerHTML = `
+            <div class="cccp-activity-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+              ${icon}
+            </div>
+            <div class="cccp-activity-details">
+              <div class="cccp-activity-title">Harvested ${resourceName}</div>
+              <div class="cccp-activity-time">
+                <i class="fa-solid fa-clock me-1"></i>${formattedDate}
+              </div>
+            </div>
+            <div class="cccp-activity-amount">
+              <span class="cccp-amount-badge cccp-amount-positive">+${quantity}</span>
+            </div>
+          `;
+          activityList.appendChild(activityItem);
+        });
+        
+        container.appendChild(activityList);
+      } else {
+        // Show empty state
+        container.innerHTML = `
+          <div class="cccp-empty-state">
+            <i class="fa-solid fa-moon mb-2" style="font-size: 2rem; color: #9ca3af;"></i>
+            <p class="text-muted mb-0 fw-semibold">No recent activity</p>
+            <small class="text-muted">This harvester has no recorded harvests yet</small>
+          </div>
+        `;
+      }
+      
+    } catch (error) {
+      console.error('Failed to load harvester activity:', error);
+      container.innerHTML = `
+        <div class="text-center text-muted py-3">
+          <i class="fa-solid fa-exclamation-triangle mb-2"></i>
+          <p class="mb-0 small">Failed to load activity</p>
+        </div>
+      `;
+    }
+  }
+  
+  // Load activities when modal is shown
+  harvestersModal.addEventListener('shown.bs.modal', function() {
+    const activityContainers = document.querySelectorAll('.cccp-harvester-activity-container');
+    activityContainers.forEach(container => {
+      const harvesterId = container.dataset.harvesterId;
+      if (harvesterId) {
+        loadHarvesterActivity(harvesterId, container);
+      }
+    });
+  });
+  
+  // Handle status toggle button clicks
+  document.addEventListener('click', async function(e) {
+    const toggleBtn = e.target.closest('.cccp-btn-toggle-status');
+    if (!toggleBtn) return;
+    
+    const harvesterId = toggleBtn.dataset.harvesterId;
+    const harvesterName = toggleBtn.dataset.harvesterName;
+    const currentState = parseInt(toggleBtn.dataset.statecode) || 0;
+    const newState = currentState === 0 ? 1 : 0; // Toggle between active (0) and inactive (1)
+    
+    const action = newState === 1 ? 'set to idle' : 'activate';
+    const actionTitle = newState === 1 ? 'Set Harvester to Idle?' : 'Activate Harvester?';
+    
+    // Show custom confirmation dialog
+    const confirmed = await ProjectUtils.UiUtils.showConfirm({
+      title: actionTitle,
+      message: `Are you sure you want to ${action} harvester "${harvesterName}"?`,
+      confirmText: action === 'set to idle' ? 'Set to Idle' : 'Activate',
+      cancelText: 'Cancel',
+      type: newState === 1 ? 'warning' : 'info'
+    });
+    
+    if (!confirmed) return;
+    
+    // Disable button and show loading
+    toggleBtn.disabled = true;
+    const originalHtml = toggleBtn.innerHTML;
+    toggleBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Updating...';
+    
+    try {
+      // Use utility method to update harvester status
+      await ProjectUtils.ApiUtils.updateHarvesterStatus(harvesterId, newState);
+      
+      console.log('✅ Harvester status updated successfully');
+      
+      // Update button
+      toggleBtn.dataset.statecode = newState;
+      if (newState === 1) {
+        toggleBtn.innerHTML = '<i class="fa-solid fa-play me-2"></i>Activate';
+        toggleBtn.classList.add('cccp-btn-toggle-inactive');
+        
+        // Update status badge in card
+        const card = toggleBtn.closest('.cccp-harvester-card');
+        if (card) {
+          const statusBadge = card.querySelector('.cccp-harvester-status');
+          if (statusBadge) {
+            statusBadge.classList.remove('cccp-status-active');
+            statusBadge.classList.add('cccp-status-idle');
+            statusBadge.innerHTML = '<i class="fa-solid fa-pause"></i>';
+          }
+          
+          const resourceBadge = card.querySelector('.cccp-resource-badge');
+          if (resourceBadge) {
+            resourceBadge.className = 'cccp-resource-badge cccp-badge-idle';
+            resourceBadge.innerHTML = '<span class="me-2">💤</span>Idle';
+          }
+        }
+      } else {
+        toggleBtn.innerHTML = '<i class="fa-solid fa-power-off me-2"></i>Set to Idle';
+        toggleBtn.classList.remove('cccp-btn-toggle-inactive');
+        
+        // Update status badge in card
+        const card = toggleBtn.closest('.cccp-harvester-card');
+        if (card) {
+          const statusBadge = card.querySelector('.cccp-harvester-status');
+          if (statusBadge) {
+            statusBadge.classList.remove('cccp-status-idle');
+            statusBadge.classList.add('cccp-status-active');
+            statusBadge.innerHTML = '<i class="fa-solid fa-check"></i>';
+          }
+        }
+      }
+      
+      // Show success notification
+      await ProjectUtils.UiUtils.showNotification({
+        title: 'Success',
+        message: `Harvester "${harvesterName}" has been ${newState === 1 ? 'set to idle' : 'activated'} successfully!`,
+        type: 'success'
+      });
+      
+    } catch (error) {
+      console.error('Failed to update harvester status:', error);
+      await ProjectUtils.UiUtils.showNotification({
+        title: 'Error',
+        message: 'Failed to update harvester status. Please try again.',
+        type: 'error'
+      });
+      toggleBtn.innerHTML = originalHtml;
+    } finally {
+      toggleBtn.disabled = false;
+    }
+  });
+})();
+
+// ============================================================================
+// DASHBOARD - ORDER ANALYTICS
+// ============================================================================
+(function() {
+  'use strict';
+  
+  const analyticsContent = document.getElementById('orderAnalyticsContent');
+  if (!analyticsContent) return;
+  
+  /**
+   * Load order analytics data
+   */
+  async function loadOrderAnalytics() {
+    try {
+      // Fetch all orders
+      const ordersUrl = '/_api/ccc_orders'
+        + '?$select=ccc_orderid'
+        + '&$filter=statecode eq 0';
+      
+      const ordersResponse = await fetch(ordersUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!ordersResponse.ok) throw new Error(`HTTP error! status: ${ordersResponse.status}`);
+      
+      const ordersData = await ordersResponse.json();
+      const orders = ordersData.value || [];
+      
+      // Fetch all order lines with resource info
+      const orderLinesUrl = '/_api/ccc_orderlines'
+        + '?$select=ccc_quantity,ccc_orderlineprice'
+        + '&$expand=ccc_resource($select=ccc_resourcename)'
+        + '&$filter=statecode eq 0';
+      
+      const linesResponse = await fetch(orderLinesUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!linesResponse.ok) throw new Error(`HTTP error! status: ${linesResponse.status}`);
+      
+      const linesData = await linesResponse.json();
+      const orderLines = linesData.value || [];
+      
+      // Calculate analytics
+      const analytics = calculateAnalytics(orders, orderLines);
+      renderAnalytics(analytics);
+      
+    } catch (error) {
+      console.error('Failed to load order analytics:', error);
+      analyticsContent.innerHTML = `
+        <div class="alert alert-danger mb-0">
+          <i class="fa-solid fa-exclamation-triangle me-2"></i>
+          Failed to load analytics. Please refresh the page.
+        </div>
+      `;
+    }
+  }
+  
+  /**
+   * Calculate analytics from orders and order lines
+   */
+  function calculateAnalytics(orders, orderLines) {
+    const resourceStats = {};
+    let totalRevenue = 0;
+    let totalUnits = 0;
+    
+    orderLines.forEach(line => {
+      const resourceName = line.ccc_resource?.ccc_resourcename || 'Unknown';
+      const quantity = line.ccc_quantity || 0;
+      const price = line.ccc_orderlineprice || 0;
+      
+      totalRevenue += price;
+      totalUnits += quantity;
+      
+      if (!resourceStats[resourceName]) {
+        resourceStats[resourceName] = {
+          name: resourceName,
+          totalQuantity: 0,
+          totalRevenue: 0,
+          orderCount: 0
+        };
+      }
+      
+      resourceStats[resourceName].totalQuantity += quantity;
+      resourceStats[resourceName].totalRevenue += price;
+      resourceStats[resourceName].orderCount++;
+    });
+    
+    // Sort by quantity and get top resources
+    const topResources = Object.values(resourceStats)
+      .sort((a, b) => b.totalQuantity - a.totalQuantity);
+    
+    return {
+      totalOrders: orders.length,
+      totalRevenue,
+      totalUnits,
+      topResources
+    };
+  }
+  
+  /**
+   * Render analytics display
+   */
+  function renderAnalytics(analytics) {
+    const { totalOrders, totalRevenue, totalUnits, topResources } = analytics;
+    
+    // Determine max quantity for progress bars
+    const maxQuantity = topResources.length > 0 ? topResources[0].totalQuantity : 1;
+    
+    const resourceRows = topResources.map((resource, index) => {
+      const percentage = maxQuantity > 0 ? Math.round((resource.totalQuantity / maxQuantity) * 100) : 0;
+      
+      // Determine icon and color
+      let icon = '📦';
+      let progressClass = 'bg-secondary';
+      const nameLower = resource.name.toLowerCase();
+      
+      if (nameLower.includes('wheat')) {
+        icon = '🌾';
+        progressClass = 'cccp-progress-wheat';
+      } else if (nameLower.includes('potato')) {
+        icon = '🥔';
+        progressClass = 'cccp-progress-potato';
+      } else if (nameLower.includes('carrot')) {
+        icon = '🥕';
+        progressClass = 'cccp-progress-carrot';
+      }
+      
+      return `
+        <tr>
+          <td>
+            <div class="d-flex align-items-center">
+              <span class="me-2" style="font-size: 1.25rem;">${icon}</span>
+              <span class="fw-semibold">${resource.name}</span>
+            </div>
+          </td>
+          <td class="text-center">
+            <span class="badge bg-light text-dark border">${resource.orderCount}</span>
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <div role="progressbar" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100" 
+                   aria-label="${resource.name} orders" 
+                   class="progress cccp-progress-bar-thin ${progressClass} flex-grow-1 me-2" 
+                   style="min-width: 80px;">
+                <div class="progress-bar" style="width: ${percentage}%;"></div>
+              </div>
+              <small class="fw-semibold" style="min-width: 35px;">${percentage}%</small>
+            </div>
+          </td>
+          <td class="text-end fw-bold">${resource.totalQuantity.toLocaleString()} units</td>
+          <td class="text-end fw-bold" style="color: #10b981;">$${resource.totalRevenue.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+    
+    analyticsContent.innerHTML = `
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="d-flex align-items-center p-3 bg-light rounded">
+            <div class="flex-shrink-0 me-3">
+              <div class="d-flex align-items-center justify-content-center" 
+                   style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px;">
+                <i class="fa-solid fa-receipt" style="color: white; font-size: 1.5rem;"></i>
+              </div>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Total Orders</div>
+              <div class="fw-bold" style="font-size: 1.5rem; color: #1f2937;">${totalOrders}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="d-flex align-items-center p-3 bg-light rounded">
+            <div class="flex-shrink-0 me-3">
+              <div class="d-flex align-items-center justify-content-center" 
+                   style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px;">
+                <i class="fa-solid fa-dollar-sign" style="color: white; font-size: 1.5rem;"></i>
+              </div>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Total Revenue</div>
+              <div class="fw-bold" style="font-size: 1.5rem; color: #10b981;">$${totalRevenue.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="d-flex align-items-center p-3 bg-light rounded">
+            <div class="flex-shrink-0 me-3">
+              <div class="d-flex align-items-center justify-content-center" 
+                   style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px;">
+                <i class="fa-solid fa-box" style="color: white; font-size: 1.5rem;"></i>
+              </div>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Units Ordered</div>
+              <div class="fw-bold" style="font-size: 1.5rem; color: #1f2937;">${totalUnits.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th scope="col" class="fw-bold">Resource</th>
+              <th scope="col" class="fw-bold text-center">Orders</th>
+              <th scope="col" class="fw-bold">Demand</th>
+              <th scope="col" class="fw-bold text-end">Total Units</th>
+              <th scope="col" class="fw-bold text-end">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${resourceRows || '<tr><td colspan="5" class="text-center text-muted py-4">No order data available</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+  
+  // Load analytics on page load
+  loadOrderAnalytics();
+})();
+
+// ============================================================================
+// DASHBOARD - RECENT INCIDENTS
+// ============================================================================
+(function() {
+  'use strict';
+  
+  const incidentsContainer = document.getElementById('incidentsContainer');
+  if (!incidentsContainer) return;
+  
+  let allIncidentsData = []; // Store all incidents for modal
+  
+  /**
+   * Load recent incidents from last 7 days
+   */
+  async function loadIncidents() {
+    try {
+      // Calculate date 7 days ago
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const filterDate = sevenDaysAgo.toISOString();
+      
+      const url = '/_api/cr4a8_incidents'
+        + '?$select=cr4a8_incidentid,cr4a8_incidenttitle,cr4a8_description,cr4a8_reporteddate,cr4a8_resolved,cr4a8_assignedto'
+        + '&$filter=statecode eq 0 and cr4a8_reporteddate ge ' + filterDate
+        + '&$orderby=cr4a8_reporteddate desc'
+        + '&$top=100';
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const data = await response.json();
+      allIncidentsData = data.value || [];
+      
+      // Show only top 2 in main view
+      renderIncidents(allIncidentsData.slice(0, 2));
+      
+    } catch (error) {
+      console.error('Failed to load incidents:', error);
+      incidentsContainer.innerHTML = `
+        <div class="p-3">
+          <div class="alert alert-warning mb-0">
+            <i class="fa-solid fa-exclamation-triangle me-2"></i>
+            <small>Failed to load incidents</small>
+          </div>
+        </div>
+      `;
+    }
+  }
+  
+  /**
+   * Render incidents to container
+   */
+  function renderIncidents(incidents) {
+    if (incidents.length === 0) {
+      incidentsContainer.innerHTML = `
+        <div class="text-center py-5">
+          <i class="fa-solid fa-check-circle" style="font-size: 3rem; color: #10b981; opacity: 0.5;"></i>
+          <p class="text-muted mt-2 mb-0 fw-semibold">No incidents reported</p>
+          <small class="text-muted">All systems operational</small>
+        </div>
+      `;
+      return;
+    }
+    
+    const incidentsHtml = incidents.map(incident => {
+      const title = incident.cr4a8_incidenttitle || 'Untitled Incident';
+      const description = incident.cr4a8_description || 'No description';
+      const assignedTo = incident.cr4a8_assignedto || 'Unassigned';
+      const resolved = incident.cr4a8_resolved || false;
+      const incidentId = incident.cr4a8_incidentid;
+      
+      // Format date
+      const reportedDate = incident.cr4a8_reporteddate ? new Date(incident.cr4a8_reporteddate) : null;
+      let timeAgo = 'Unknown';
+      if (reportedDate) {
+        const diff = Math.abs(Date.now() - reportedDate.getTime());
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+        
+        if (minutes < 60) {
+          timeAgo = minutes === 0 ? 'Just now' : `${minutes} min ago`;
+        } else if (hours < 24) {
+          timeAgo = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        } else {
+          timeAgo = `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+      }
+      
+      // Determine severity badge (based on age if not resolved)
+      let severityBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+      if (resolved) {
+        severityBadge = '<span class="badge bg-success">Resolved</span>';
+      } else if (reportedDate) {
+        const hoursSinceReport = (Date.now() - reportedDate.getTime()) / 3600000;
+        if (hoursSinceReport > 48) {
+          severityBadge = '<span class="badge bg-danger">Critical</span>';
+        } else if (hoursSinceReport > 24) {
+          severityBadge = '<span class="badge" style="background: #f97316;">High</span>';
+        }
+      }
+      
+      return `
+        <div class="cccp-list-item ${resolved ? 'opacity-75' : ''}">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            ${severityBadge}
+            <small class="text-muted">${timeAgo}</small>
+          </div>
+          <div class="fw-semibold mb-1">${title}</div>
+          <small class="text-muted d-block mb-2">${description.substring(0, 60)}${description.length > 60 ? '...' : ''}</small>
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              <i class="fa-solid fa-user me-1"></i>${assignedTo}
+            </small>
+            ${!resolved ? `
+              <button 
+                class="btn btn-sm btn-outline-success cccp-resolve-incident-btn" 
+                data-incident-id="${incidentId}"
+                style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">
+                <i class="fa-solid fa-check me-1"></i>Resolve
+              </button>
+            ` : `
+              <span class="text-success small">
+                <i class="fa-solid fa-check-circle me-1"></i>Resolved
+              </span>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    incidentsContainer.innerHTML = incidentsHtml;
+    
+    // Add event listeners to resolve buttons
+    document.querySelectorAll('.cccp-resolve-incident-btn').forEach(btn => {
+      btn.addEventListener('click', handleResolveIncident);
+    });
+  }
+  
+  /**
+   * Handle resolve incident button click
+   */
+  async function handleResolveIncident(event) {
+    const button = event.currentTarget;
+    const incidentId = button.dataset.incidentId;
+    
+    if (!incidentId) return;
+    
+    // Confirm action
+    const confirmed = await ProjectUtils.UiUtils.showConfirm({
+      title: 'Resolve Incident?',
+      message: 'Mark this incident as resolved?',
+      confirmText: 'Resolve',
+      cancelText: 'Cancel',
+      type: 'success'
+    });
+    
+    if (!confirmed) return;
+    
+    // Disable button
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    
+    try {
+      const cleanIncidentId = String(incidentId).replace(/[{}]/g, '');
+      
+      await fetch(`/_api/cr4a8_incidents(${cleanIncidentId})`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cr4a8_resolved: true
+        })
+      });
+      
+      // Show success notification
+      await ProjectUtils.UiUtils.showNotification({
+        title: 'Success',
+        message: 'Incident marked as resolved!',
+        type: 'success'
+      });
+      
+      // Reload incidents
+      loadIncidents();
+      
+    } catch (error) {
+      console.error('Failed to resolve incident:', error);
+      await ProjectUtils.UiUtils.showNotification({
+        title: 'Error',
+        message: 'Failed to resolve incident. Please try again.',
+        type: 'error'
+      });
+      button.disabled = false;
+      button.innerHTML = '<i class="fa-solid fa-check me-1"></i>Resolve';
+    }
+  }
+  
+  // Load incidents on page load
+  loadIncidents();
+  
+  // Show All Incidents Modal Handler
+  const showAllIncidentsBtn = document.getElementById('showAllIncidentsBtn');
+  const allIncidentsModal = document.getElementById('allIncidentsModal');
+  
+  if (showAllIncidentsBtn && allIncidentsModal) {
+    showAllIncidentsBtn.addEventListener('click', function() {
+      const modal = new bootstrap.Modal(allIncidentsModal);
+      modal.show();
+      
+      // Render all incidents in modal
+      const loadingState = document.getElementById('allIncidentsLoadingState');
+      const content = document.getElementById('allIncidentsContent');
+      const emptyState = document.getElementById('allIncidentsEmptyState');
+      const errorState = document.getElementById('allIncidentsErrorState');
+      
+      // Reset states
+      loadingState.style.display = 'none';
+      errorState.style.display = 'none';
+      
+      if (allIncidentsData.length === 0) {
+        emptyState.style.display = 'block';
+        content.style.display = 'none';
+      } else {
+        emptyState.style.display = 'none';
+        content.style.display = 'block';
+        renderAllIncidentsModal(allIncidentsData);
+      }
+    });
+  }
+  
+  /**
+   * Render all incidents in modal
+   */
+  function renderAllIncidentsModal(incidents) {
+    const content = document.getElementById('allIncidentsContent');
+    
+    const incidentsHtml = incidents.map(incident => {
+      const title = incident.cr4a8_incidenttitle || 'Untitled Incident';
+      const description = incident.cr4a8_description || 'No description';
+      const assignedTo = incident.cr4a8_assignedto || 'Unassigned';
+      const resolved = incident.cr4a8_resolved || false;
+      const incidentId = incident.cr4a8_incidentid;
+      
+      // Format date
+      const reportedDate = incident.cr4a8_reporteddate ? new Date(incident.cr4a8_reporteddate) : null;
+      let formattedDate = 'Unknown';
+      let timeAgo = 'Unknown';
+      
+      if (reportedDate) {
+        formattedDate = reportedDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const diff = Date.now() - reportedDate.getTime();
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+        
+        if (minutes < 60) {
+          timeAgo = `${minutes} min ago`;
+        } else if (hours < 24) {
+          timeAgo = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        } else {
+          timeAgo = `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+      }
+      
+      // Determine severity
+      let severityBadge, severityColor;
+      if (resolved) {
+        severityBadge = '<span class="badge" style="background: linear-gradient(135deg, #34d399 0%, #10b981 100%); padding: 0.4rem 0.75rem;">Resolved</span>';
+      } else if (reportedDate) {
+        const hoursSinceReport = (Date.now() - reportedDate.getTime()) / 3600000;
+        if (hoursSinceReport > 48) {
+          severityBadge = '<span class="badge" style="background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); padding: 0.4rem 0.75rem;">Critical</span>';
+        } else if (hoursSinceReport > 24) {
+          severityBadge = '<span class="badge" style="background: linear-gradient(135deg, #fb923c 0%, #f97316 100%); padding: 0.4rem 0.75rem;">High</span>';
+        } else {
+          severityBadge = '<span class="badge" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); padding: 0.4rem 0.75rem;">Pending</span>';
+        }
+      } else {
+        severityBadge = '<span class="badge" style="background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%); padding: 0.4rem 0.75rem;">Unknown</span>';
+      }
+      
+      return `
+        <div class="cccp-order-card mb-3 ${resolved ? 'opacity-75' : ''}">
+          <div class="cccp-order-card-content">
+            <div class="d-flex align-items-start gap-3">
+              <div class="cccp-order-icon" style="background: ${resolved ? 'linear-gradient(135deg, #34d399 0%, #10b981 100%)' : 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)'};">
+                <i class="fa-solid ${resolved ? 'fa-check' : 'fa-triangle-exclamation'}" style="color: white; font-size: 1.5rem;"></i>
+              </div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <h6 class="mb-1 fw-bold" style="color: #1f2937;">${title}</h6>
+                    <p class="text-muted mb-2 small">${description}</p>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                      <small class="text-muted">
+                        <i class="fa-solid fa-user me-1"></i>${assignedTo}
+                      </small>
+                      <small class="text-muted">
+                        <i class="fa-solid fa-clock me-1"></i>${timeAgo}
+                      </small>
+                    </div>
+                  </div>
+                  ${severityBadge}
+                </div>
+                <div class="d-flex justify-content-between align-items-center pt-2" style="border-top: 1px solid #e5e7eb;">
+                  <small class="text-muted">
+                    <i class="fa-solid fa-calendar me-1"></i>${formattedDate}
+                  </small>
+                  ${!resolved ? `
+                    <button 
+                      class="btn btn-sm cccp-resolve-incident-btn" 
+                      data-incident-id="${incidentId}"
+                      style="background: linear-gradient(135deg, #34d399 0%, #10b981 100%); color: white; border: none; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
+                      <i class="fa-solid fa-check me-1"></i>Resolve
+                    </button>
+                  ` : `
+                    <span class="text-success small fw-semibold">
+                      <i class="fa-solid fa-check-circle me-1"></i>Resolved
+                    </span>
+                  `}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    content.innerHTML = incidentsHtml;
+    
+    // Add event listeners to resolve buttons in modal
+    document.querySelectorAll('#allIncidentsContent .cccp-resolve-incident-btn').forEach(btn => {
+      btn.addEventListener('click', async function(event) {
+        await handleResolveIncident(event);
+        // Close and reopen modal to refresh
+        const modalInstance = bootstrap.Modal.getInstance(allIncidentsModal);
+        if (modalInstance) {
+          modalInstance.hide();
+          setTimeout(() => {
+            showAllIncidentsBtn.click();
+          }, 300);
+        }
+      });
+    });
+  }
+})();
+
+// ============================================================================
+// DASHBOARD - FIELD VIEW MODAL
+// ============================================================================
+(function() {
+  'use strict';
+  
+  const expandFieldViewBtn = document.getElementById('expandFieldViewBtn');
+  const fieldViewModal = document.getElementById('fieldViewModal');
+  const refreshHarvestLogBtn = document.getElementById('refreshHarvestLogBtn');
+  const harvestLogLoading = document.getElementById('harvestLogLoading');
+  const harvestLogContent = document.getElementById('harvestLogContent');
+  const harvestLogEmpty = document.getElementById('harvestLogEmpty');
+  
+  if (expandFieldViewBtn && fieldViewModal) {
+    // Open modal when expand button is clicked
+    expandFieldViewBtn.addEventListener('click', function() {
+      const modal = new bootstrap.Modal(fieldViewModal);
+      modal.show();
+      
+      // Load harvest log when modal opens
+      loadHarvestLog();
+    });
+  }
+  
+  // Refresh button handler
+  if (refreshHarvestLogBtn) {
+    refreshHarvestLogBtn.addEventListener('click', function() {
+      // Add spinning animation
+      const icon = this.querySelector('i');
+      icon.classList.add('fa-spin');
+      
+      // Load harvest log
+      loadHarvestLog().finally(() => {
+        // Remove spinning animation after data loads
+        setTimeout(() => {
+          icon.classList.remove('fa-spin');
+        }, 500);
+      });
+    });
+  }
+  
+  /**
+   * Load harvest log from API
+   */
+  async function loadHarvestLog() {
+    try {
+      // Show loading state
+      harvestLogLoading.style.display = 'block';
+      harvestLogContent.style.display = 'none';
+      harvestLogEmpty.style.display = 'none';
+      
+      // Fetch harvest summary data with resource expansion
+      const url = '/_api/ccc_harvestersummaries?$select=ccc_harvestersummaryid,ccc_quantity,createdon' +
+        '&$expand=ccc_harvester($select=ccc_name),ccc_resource($select=ccc_resourcename)' +
+        '&$filter=statecode eq 0&$orderby=createdon desc&$top=50';
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load harvest data');
+      }
+      
+      const data = await response.json();
+      const harvests = data.value || [];
+      
+      // Hide loading
+      harvestLogLoading.style.display = 'none';
+      
+      if (harvests.length === 0) {
+        harvestLogEmpty.style.display = 'block';
+        return;
+      }
+      
+      // Render harvest log
+      renderHarvestLog(harvests);
+      harvestLogContent.style.display = 'block';
+      
+    } catch (error) {
+      console.error('Error loading harvest log:', error);
+      harvestLogLoading.style.display = 'none';
+      harvestLogEmpty.style.display = 'block';
+    }
+  }
+  
+  /**
+   * Render harvest log entries
+   */
+  function renderHarvestLog(harvests) {
+    const resourceIcons = {
+      'wheat': '🌾',
+      'potato': '🥔',
+      'carrot': '🥕',
+      'corn': '🌽',
+      'tomato': '🍅'
+    };
+    
+    const resourceColors = {
+      'wheat': '#10b981',
+      'potato': '#f59e0b',
+      'carrot': '#f97316',
+      'corn': '#fbbf24',
+      'tomato': '#ef4444'
+    };
+    
+    let html = '';
+    
+    harvests.forEach((harvest, index) => {
+      const harvesterName = harvest.ccc_harvester?.ccc_name || 'Unknown';
+      const resourceName = harvest.ccc_resource?.ccc_resourcename || 'Unknown';
+      const quantity = harvest.ccc_quantity || 0;
+      const createdOn = harvest.createdon ? new Date(harvest.createdon) : null;
+      
+      // Get icon and color for resource
+      const resourceKey = resourceName.toLowerCase();
+      const icon = resourceIcons[resourceKey] || '📦';
+      const color = resourceColors[resourceKey] || '#6b7280';
+      
+      // Format date
+      let dateStr = 'Unknown date';
+      if (createdOn) {
+        const now = new Date();
+        const diffMs = now - createdOn;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 60) {
+          dateStr = diffMins <= 1 ? 'Just now' : `${diffMins} mins ago`;
+        } else if (diffHours < 24) {
+          dateStr = diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+        } else if (diffDays < 7) {
+          dateStr = diffDays === 1 ? 'Yesterday' : `${diffDays} days ago`;
+        } else {
+          dateStr = createdOn.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+      }
+      
+      html += `
+        <div class="mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05); border-left: 3px solid ${color};">
+          <div class="d-flex align-items-start">
+            <span style="font-size: 1.25rem; margin-right: 0.5rem;">${icon}</span>
+            <div class="flex-grow-1" style="min-width: 0;">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <div class="text-white small fw-semibold text-truncate" style="max-width: 120px;" title="${harvesterName}">
+                  ${harvesterName}
+                </div>
+                <span class="badge" style="background: ${color}; font-size: 0.7rem; white-space: nowrap;">
+                  ${quantity} units
+                </span>
+              </div>
+              <div class="text-white-50" style="font-size: 0.7rem;">${resourceName}</div>
+              <div class="text-white-50" style="font-size: 0.65rem; margin-top: 0.25rem;">
+                <i class="fa-solid fa-clock me-1"></i>${dateStr}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    harvestLogContent.innerHTML = html;
+  }
+})();
+
+// ============================================================================
+// DASHBOARD - ALL ORDERS MODAL
+// ============================================================================
+(function() {
+  'use strict';
+  
+  const allOrdersModal = document.getElementById('allOrdersModal');
+  if (!allOrdersModal) return;
+  
+  const elements = {
+    loadingState: document.getElementById('allOrdersLoadingState'),
+    content: document.getElementById('allOrdersContent'),
+    emptyState: document.getElementById('allOrdersEmptyState'),
+    errorState: document.getElementById('allOrdersErrorState')
+  };
+  
+  /**
+   * Load all orders from API
+   */
+  async function loadAllOrders() {
+    // Show loading state
+    elements.loadingState.style.display = 'block';
+    elements.content.style.display = 'none';
+    elements.emptyState.style.display = 'none';
+    elements.errorState.style.display = 'none';
+    
+    try {
+      const url = '/_api/ccc_orders'
+        + '?$select=ccc_orderid,ccc_ordername,ccc_orderdate,createdon,statuscode'
+        + '&$expand=ccc_ordercontact($select=fullname,emailaddress1)'
+        + '&$orderby=createdon desc';
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const orders = data.value || [];
+      
+      if (orders.length === 0) {
+        elements.loadingState.style.display = 'none';
+        elements.emptyState.style.display = 'block';
+        return;
+      }
+      
+      renderAllOrders(orders);
+      
+      elements.loadingState.style.display = 'none';
+      elements.content.style.display = 'block';
+      
+    } catch (error) {
+      console.error('Failed to load all orders:', error);
+      elements.loadingState.style.display = 'none';
+      elements.errorState.style.display = 'block';
+    }
+  }
+  
+  /**
+   * Render all orders to the modal
+   * @param {Array} orders - Array of order objects
+   */
+  function renderAllOrders(orders) {
+    const ordersHtml = orders.map(order => {
+      const orderName = order.ccc_ordername || 'Unknown Order';
+      const orderDate = order.ccc_orderdate || order.createdon;
+      const contactName = order.ccc_ordercontact?.fullname || 'Guest';
+      const contactEmail = order.ccc_ordercontact?.emailaddress1 || '';
+      const orderId = order.ccc_orderid;
+      
+      // Determine icon based on order name
+      const orderNameLower = orderName.toLowerCase();
+      let orderIcon = '📦';
+      let iconBg = '#6b7280';
+      if (orderNameLower.includes('wheat')) {
+        orderIcon = '🌾';
+        iconBg = '#eab308';
+      } else if (orderNameLower.includes('potato')) {
+        orderIcon = '🥔';
+        iconBg = '#10b981';
+      } else if (orderNameLower.includes('carrot')) {
+        orderIcon = '🥕';
+        iconBg = '#f97316';
+      }
+      
+      // Format date
+      const date = new Date(orderDate);
+      const formattedDate = date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      // Determine status badge color
+      const statusLabel = order['statuscode@OData.Community.Display.V1.FormattedValue'] || 'Unknown';
+      const statusLower = statusLabel.toLowerCase();
+      let statusGradient, statusIcon;
+      if (statusLower.includes('reject') || statusLower.includes('cancel')) {
+        statusGradient = 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)';
+        statusIcon = 'fa-circle-xmark';
+      } else if (statusLower.includes('pending') || statusLower.includes('wait')) {
+        statusGradient = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+        statusIcon = 'fa-clock';
+      } else if (statusLower.includes('sign') || statusLower.includes('complete') || statusLower.includes('success') || statusLower.includes('approve')) {
+        statusGradient = 'linear-gradient(135deg, #34d399 0%, #10b981 100%)';
+        statusIcon = 'fa-circle-check';
+      } else {
+        statusGradient = 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)';
+        statusIcon = 'fa-circle-info';
+      }
+      
+      return `
+        <div class="cccp-order-card mb-3">
+          <div class="cccp-order-card-content">
+            <div class="d-flex align-items-start gap-3">
+              <div class="cccp-order-icon" style="background: linear-gradient(135deg, ${iconBg} 0%, ${iconBg}dd 100%);">
+                ${orderIcon}
+              </div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <h6 class="mb-1 fw-bold" style="color: #1f2937;">${orderName}</h6>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <small class="text-muted">
+                        <i class="fa-solid fa-user me-1"></i>${contactName}
+                      </small>
+                      ${contactEmail ? `<small class="text-muted">• ${contactEmail}</small>` : ''}
+                    </div>
+                  </div>
+                  <span class="badge" style="background: ${statusGradient}; padding: 0.4rem 0.75rem;">
+                    <i class="fa-solid ${statusIcon} me-1"></i>${statusLabel}
+                  </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <small class="text-muted">
+                    <i class="fa-solid fa-calendar me-1"></i>${formattedDate}
+                  </small>
+                  <button 
+                    class="btn btn-sm cccp-view-order-btn" 
+                    data-order-id="${orderId}"
+                    style="background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%); color: white; border: none; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
+                    <i class="fa-solid fa-eye me-1"></i>View Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    elements.content.innerHTML = ordersHtml;
+  }
+  
+  // Load orders when modal is shown
+  allOrdersModal.addEventListener('shown.bs.modal', function() {
+    loadAllOrders();
+  });
+  
+  // Refresh button handler
+  const refreshAllOrdersBtn = document.getElementById('refreshAllOrdersBtn');
+  if (refreshAllOrdersBtn) {
+    refreshAllOrdersBtn.addEventListener('click', function() {
+      // Add loading state
+      this.classList.add('loading');
+      this.disabled = true;
+      
+      loadAllOrders().finally(() => {
+        setTimeout(() => {
+          this.classList.remove('loading');
+          this.disabled = false;
+        }, 500);
+      });
+    });
+  }
+})();
+</script>
+
+<style>
+/* ============================================================================
+   REFRESH BUTTON STYLING
+   ============================================================================ */
+.cccp-refresh-btn {
+  background: white;
+  border: 2px solid #e5e7eb;
+  color: #6b7280;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  font-size: 1.1rem;
+}
+
+.cccp-refresh-btn:hover {
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  border-color: #991b1b;
+  color: white;
+  transform: rotate(180deg);
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.3);
+}
+
+.cccp-refresh-btn:active {
+  transform: rotate(180deg) scale(0.95);
+}
+
+.cccp-refresh-btn.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.cccp-refresh-btn.loading i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   ORDER DETAILS MODAL - MODERN CCCP STYLING
+   ============================================================================ */
+
+/* Order Info Card */
+.cccp-order-info-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.cccp-section-title {
+  color: #991b1b;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.cccp-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cccp-info-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.cccp-info-value {
+  color: #1f2937;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* Order Lines Card */
+.cccp-order-lines-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.cccp-order-lines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cccp-order-line-item {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cccp-order-line-item:hover {
+  border-color: #991b1b;
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.1);
+  transform: translateX(2px);
+}
+
+/* ============================================================================
+   HARVESTER MODAL - MODERN CCCP STYLING
+   ============================================================================ */
+
+/* Modal Base Styling */
+.cccp-modal .modal-content {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal Header */
+.cccp-modal-header {
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  color: #facc15;
+  padding: 1.5rem 2rem;
+  border-bottom: 4px solid #facc15;
+  position: relative;
+}
+
+.cccp-modal-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #facc15, transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.cccp-modal-header .modal-title {
+  color: white;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cccp-btn-close {
+  background: transparent;
+  border: 2px solid #facc15;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  opacity: 1;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: brightness(0) invert(1);
+}
+
+.cccp-btn-close:hover {
+  background: #facc15;
+  transform: rotate(90deg) scale(1.1);
+  border-color: #facc15;
+}
+
+/* Modal Body */
+.cccp-modal-body {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  padding: 2rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Stats Summary Bar */
+.cccp-stats-summary {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.cccp-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cccp-stat-card:hover {
+  border-color: #991b1b;
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.1);
+  transform: translateY(-2px);
+}
+
+.cccp-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+}
+
+.cccp-stat-content {
+  flex: 1;
+}
+
+.cccp-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.cccp-stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Harvester Card */
+.cccp-harvester-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+}
+
+.cccp-harvester-card:hover {
+  box-shadow: 0 12px 24px rgba(153, 27, 27, 0.15);
+  transform: translateY(-4px);
+  border-color: #991b1b;
+}
+
+.cccp-harvester-content {
+  padding: 2rem;
+  padding-bottom: 2.5rem;
+}
+
+.cccp-harvester-footer {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.cccp-btn-toggle-status {
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(153, 27, 27, 0.3);
+}
+
+.cccp-btn-toggle-status:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7f1d1d 0%, #6b1414 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.4);
+  color: white;
+}
+
+.cccp-btn-toggle-status:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cccp-btn-toggle-status.cccp-btn-toggle-inactive {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.cccp-btn-toggle-status.cccp-btn-toggle-inactive:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Avatar Section */
+.cccp-harvester-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.cccp-harvester-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #facc15;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cccp-harvester-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+}
+
+.cccp-harvester-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cccp-harvester-status {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.875rem;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.cccp-status-active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  animation: pulse 2s infinite;
+}
+
+.cccp-status-idle {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Resource Badge */
+.cccp-resource-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.cccp-resource-badge:hover {
+  transform: scale(1.05);
+}
+
+.cccp-badge-wheat {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #78350f;
+  border: 2px solid #facc15;
+}
+
+.cccp-badge-potato {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: 2px solid #10b981;
+}
+
+.cccp-badge-carrot {
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+  color: #7c2d12;
+  border: 2px solid #f97316;
+}
+
+.cccp-badge-idle {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #4b5563;
+  border: 2px solid #9ca3af;
+}
+
+/* Activity Section */
+.cccp-activity-header {
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.cccp-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cccp-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cccp-activity-item:hover {
+  border-color: #991b1b;
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.1);
+  transform: translateX(4px);
+}
+
+.cccp-activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.cccp-activity-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.cccp-activity-title {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.cccp-activity-time {
+  font-size: 0.75rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+}
+
+.cccp-activity-amount {
+  flex-shrink: 0;
+}
+
+.cccp-amount-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.cccp-amount-positive {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: 2px solid #10b981;
+}
+
+/* Empty States */
+.cccp-empty-state {
+  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border-radius: 10px;
+  border: 2px dashed #d1d5db;
+}
+
+.cccp-empty-state-large {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+/* Modal Footer */
+.cccp-modal-footer {
+  background: white;
+  border-top: 2px solid #e5e7eb;
+  padding: 1.25rem 2rem;
+}
+
+.cccp-btn-close-modal {
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-weight: 700;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.3);
+}
+
+.cccp-btn-close-modal:hover {
+  background: linear-gradient(135deg, #7f1d1d 0%, #6b1414 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(153, 27, 27, 0.4);
+  color: white;
+}
+
+.cccp-btn-close-modal:active {
+  transform: translateY(0);
+}
+
+/* Custom Confirmation Dialog Buttons */
+.cccp-btn-confirm {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-weight: 700;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.cccp-btn-confirm:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.4);
+  color: white;
+}
+
+.cccp-btn-confirm:active {
+  transform: translateY(0);
+}
+
+.cccp-btn-cancel {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-weight: 700;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+.cccp-btn-cancel:hover {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(107, 114, 128, 0.4);
+  color: white;
+}
+
+.cccp-btn-cancel:active {
+  transform: translateY(0);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .cccp-modal-body {
+    padding: 1rem;
+  }
+  
+  .cccp-stats-summary {
+    padding: 1rem;
+  }
+  
+  .cccp-stat-card {
+    padding: 0.75rem;
+  }
+  
+  .cccp-stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .cccp-stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .cccp-harvester-avatar {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .cccp-harvester-content {
+    padding: 1.5rem;
+  }
+  
+  .cccp-activity-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .cccp-activity-amount {
+    align-self: flex-end;
+  }
+}
+
+/* All Orders Modal Card Styling */
+.cccp-order-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+}
+
+.cccp-order-card:hover {
+  border-color: #991b1b;
+  box-shadow: 0 8px 24px rgba(153, 27, 27, 0.12);
+  transform: translateY(-2px);
+}
+
+.cccp-order-card-content {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+}
+
+.cccp-order-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cccp-order-card .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.4);
+}
+
+.cccp-order-card .btn:active {
+  transform: translateY(0);
+}
+</style>

@@ -1,0 +1,34 @@
+--- 
+note: this document must NOT contain any markdown formatting, as it is not supported by wordpress
+---
+
+
+CrayCon Creepers Final Delivery
+
+Our solution CCCF (CrayCon Creepers Central Farmers) consists of an end to end service.
+
+Redstone Realm — Craft a real business solution
+
+We deserve a full score because our solution doesn’t just exist — it solves a real business problem end-to-end. We a customer facing portal for purchasing Minecraft resources. Everything is automated and the only manual interventions are contract signing of an created order.
+
+Governance & Best Practices — Responsible and trustworthy design
+
+Why do we deserve full score?
+
+We deserve a full score because our flow respects data privacy and security best practices. We use secure, authenticated API calls (Oneflow & Link Mobility), keep sensitive data in Dataverse, and ensure every step in the process is traceable. No personal data is exposed, and all actions are logged.
+
+Data, AI & Analytics — Turning data into insight
+
+We deserve a full score because we leverage Dataverse as a true data backbone — tracking contacts, orders, and SMS activity. Every SMS and contract event becomes structured data we can report on, audit, and analyze. This turns operational events into measurable insights.
+
+Low-Code — Practical use of Power Platform without heavy code
+
+We deserve a full score because many components is built with Power Automate cloud flows and Power Platform building blocks — no heavy custom code. Yet the solution is robust: document generation, API orchestration, conditional logic, and activity tracking all live in low code — exactly what the Low Code category celebrates.
+
+Code Connoisseur
+
+We deserve a full score because we integrated external APIs using HTTP actions in Power Automate — thoughtfully crafted and error-handled, effectively building real API logic without compromising maintainability. This is the spirit of blending code where needed and low code everywhere else.
+
+Digital transformation — Real automation that improves business
+
+We deserve a full score because this solution directly improves customer experience and operational efficiency: no manual contract processing, automated customer notification, and full traceability in CRM. That’s real transformation — less work, fewer errors, and better measurable outcomes.

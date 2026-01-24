@@ -1,0 +1,16 @@
+adx_accountrelationship: 
+adx_append: true
+adx_appendto: true
+adx_contactrelationship: 
+adx_create: true
+adx_delete: true
+adx_entitylogicalname: ccc_orderline
+adx_entityname: Orderline | Access for Authed users
+adx_entitypermission_webrole:
+- ae855182-fdc8-4177-b72c-74387dc4d16a
+adx_entitypermissionid: b6556c5c-a978-4737-b286-3de583a29990
+adx_parententitypermission: 
+adx_parentrelationship: 
+adx_read: true
+adx_scope: 756150000
+adx_write: true

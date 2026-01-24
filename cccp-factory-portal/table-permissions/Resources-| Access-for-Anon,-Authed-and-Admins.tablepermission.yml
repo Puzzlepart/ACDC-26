@@ -1,0 +1,18 @@
+adx_accountrelationship: 
+adx_append: true
+adx_appendto: true
+adx_contactrelationship: 
+adx_create: true
+adx_delete: true
+adx_entitylogicalname: ccc_resource
+adx_entityname: Resources | Access for Anon, Authed and Admins
+adx_entitypermission_webrole:
+- 2554928c-6913-4ef1-8642-1cbadd03c2bc
+- 4ae63768-d2c0-4946-aa8a-2801efd8d039
+- ae855182-fdc8-4177-b72c-74387dc4d16a
+adx_entitypermissionid: 630f490d-a7a8-41d3-896f-0e1b1736d3ff
+adx_parententitypermission: 
+adx_parentrelationship: 
+adx_read: true
+adx_scope: 756150000
+adx_write: true

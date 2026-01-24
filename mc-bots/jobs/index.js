@@ -6,6 +6,8 @@ const farmerCarrots = require('./farmer-carrots')
 const brigadier = require('./brigadier')
 const guard = require('./guard')
 const scout = require('./scout')
+const wanderer = require('./wanderer')
+const sparseFarmer = require('./sparse-farmer')
 
 module.exports = {
   farmer,
@@ -15,5 +17,7 @@ module.exports = {
   'farmer-carrots': farmerCarrots,
   brigadier,
   guard,
-  scout
+  scout,
+  wanderer,
+  'sparse-farmer': sparseFarmer
 }

@@ -39,7 +39,7 @@ const CONFIG = {
   port: Number(process.env.MC_PORT || 25565),
   username: process.env.MC_USERNAME || 'comrade_remote',
   viewerPort: Number(process.env.VIEWER_PORT || 3000),
-  controlPort: Number(process.env.CONTROL_PORT || 4000),
+  controlPort: Number(process.env.CONTROL_PORT || 4000 ),
   viewerHost: process.env.VIEWER_HOST || 'cam.craycon.no',
   authToken: process.env.BOT_AUTH_TOKEN || '',
   lookSensitivity: Number(process.env.LOOK_SENSITIVITY || 0.0025),
@@ -59,7 +59,7 @@ const CONFIG = {
     autoAssign: process.env.AUTO_ASSIGN_JOBS ? process.env.AUTO_ASSIGN_JOBS === 'true' : true,
     defaultJob: process.env.DEFAULT_JOB || '',
     assignments: parseJobAssignments(process.env.BOT_JOBS || ''),
-    priority: ['brigadier', 'farmer-wheat', 'farmer-potatoes', 'farmer-beets', 'farmer-carrots', 'farmer', 'guard', 'scout'],
+    priority: ['brigadier', 'farmer-wheat', 'farmer-potatoes', 'farmer-beets', 'farmer-carrots', 'farmer', 'sparse-farmer', 'guard', 'scout', 'wanderer'],
     farmer: {
       crop: process.env.FARMER_CROP || 'wheat',
       radius: Number(process.env.FARMER_RADIUS || 6),

@@ -34,11 +34,18 @@
           </div>
         </div>
         <div class="card-body">
+          <label>Control Server URL</label>
+          <input id="server-url" placeholder="ws://host:4000" />
           <label>Auth Token (optional for localhost)</label>
           <input id="token" placeholder="BOT_AUTH_TOKEN" />
-          <button id="connect">Connect</button>
-          <button id="disconnect" class="secondary">Disconnect</button>
+          <label>Viewer Host Override (optional)</label>
+          <input id="viewer-host" placeholder="cam.craycon.no" />
+          <div class="row">
+            <button id="connect">Connect</button>
+            <button id="disconnect" class="secondary">Disconnect</button>
+          </div>
           <p id="status">Disconnected</p>
+          <p class="hint">Tip: use http(s) or ws(s) URLs. Token is sent as <code>?token=</code>.</p>
         </div>
       </div>
 

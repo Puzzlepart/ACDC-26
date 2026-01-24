@@ -1,14 +1,20 @@
 #!/usr/bin/env node
 const blessed = require('blessed')
 const WebSocket = require('ws')
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
 
-const SERVER_URL = process.env.BOT_SERVER || 'ws://135.225.56.193:4000'
+const DEFAULT_SERVER_URL = process.env.BOT_SERVER || 'ws://135.225.56.193:4000'
+const DEFAULT_TOKEN = process.env.BOT_AUTH_TOKEN || ''
+const SETTINGS_PATH = path.join(os.homedir(), '.ccc-tui-client.json')
 
 let ws = null
 let bots = []
 let jobs = []
 let selectedIndex = 0
 let connected = false
+let settings = loadSettings()
 
 // Create screen
 const screen = blessed.screen({
@@ -79,7 +85,7 @@ const actionsBox = blessed.box({
   label: ' Actions ',
   border: { type: 'line' },
   tags: true,
-  content: ' {bold}[S]{/bold} Spawn Bot  {bold}[J]{/bold} Change Job  {bold}[K]{/bold} Kill Bot  {bold}[R]{/bold} Refresh  {bold}[Q]{/bold} Quit',
+  content: ' {bold}[S]{/bold} Spawn Bot  {bold}[J]{/bold} Change Job  {bold}[K]{/bold} Kill Bot  {bold}[X]{/bold} Stop Job  {bold}[R]{/bold} Refresh  {bold}[C]{/bold} Settings  {bold}[Q]{/bold} Quit',
   style: { border: { fg: 'green' } }
 })
 
@@ -154,6 +160,65 @@ const spawnHint = blessed.text({
   style: { fg: 'gray' }
 })
 
+// Settings dialog
+const settingsDialog = blessed.form({
+  top: 'center',
+  left: 'center',
+  width: 70,
+  height: 16,
+  label: ' Connection Settings ',
+  border: { type: 'line' },
+  style: { border: { fg: 'cyan' } },
+  keys: true,
+  hidden: true
+})
+
+const settingsServerLabel = blessed.text({
+  parent: settingsDialog,
+  top: 1,
+  left: 2,
+  content: 'Server URL (ws://host:port or http(s)://host:port):'
+})
+
+const settingsServerInput = blessed.textbox({
+  parent: settingsDialog,
+  top: 2,
+  left: 2,
+  width: 64,
+  height: 1,
+  inputOnFocus: true,
+  border: { type: 'line' },
+  style: { border: { fg: 'gray' } }
+})
+
+const settingsTokenLabel = blessed.text({
+  parent: settingsDialog,
+  top: 5,
+  left: 2,
+  content: 'Auth Token (sent as ?token=):'
+})
+
+const settingsTokenInput = blessed.textbox({
+  parent: settingsDialog,
+  top: 6,
+  left: 2,
+  width: 64,
+  height: 1,
+  secret: true,
+  censor: '*',
+  inputOnFocus: true,
+  border: { type: 'line' },
+  style: { border: { fg: 'gray' } }
+})
+
+const settingsHint = blessed.text({
+  parent: settingsDialog,
+  top: 9,
+  left: 2,
+  content: 'Enter to save, Esc to cancel',
+  style: { fg: 'gray' }
+})
+
 screen.append(header)
 screen.append(statusBar)
 screen.append(botList)
@@ -162,6 +227,7 @@ screen.append(actionsBox)
 screen.append(logBox)
 screen.append(jobDialog)
 screen.append(spawnDialog)
+screen.append(settingsDialog)
 
 function log(msg) {
   const time = new Date().toLocaleTimeString()
@@ -177,7 +243,7 @@ function updateStatus(msg, color = 'yellow') {
 
 function updateBotList() {
   const items = bots.map(b => {
-    const status = b.inGame ? '{green-fg}●{/}' : '{red-fg}●{/}'
+    const status = b.inGame ? '☑' : '☒'
     const job = b.job || 'idle'
     return ` ${status} ${b.name || b.id} [${job}]`
   })
@@ -211,9 +277,10 @@ function updateDetails() {
 }
 
 function connect() {
-  log('Connecting to ' + SERVER_URL)
+  const url = buildWsUrl(settings.serverUrl, settings.token)
+  log('Connecting to ' + sanitizeUrl(url))
 
-  ws = new WebSocket(SERVER_URL)
+  ws = new WebSocket(url)
 
   ws.on('open', () => {
     connected = true
@@ -291,6 +358,75 @@ function send(type, args = {}) {
   ws.send(JSON.stringify({ type, args, id: Date.now() }))
 }
 
+function loadSettings() {
+  try {
+    if (!fs.existsSync(SETTINGS_PATH)) {
+      return { serverUrl: DEFAULT_SERVER_URL, token: DEFAULT_TOKEN }
+    }
+    const raw = fs.readFileSync(SETTINGS_PATH, 'utf8')
+    const parsed = JSON.parse(raw)
+    return {
+      serverUrl: typeof parsed.serverUrl === 'string' && parsed.serverUrl.trim()
+        ? parsed.serverUrl.trim()
+        : DEFAULT_SERVER_URL,
+      token: typeof parsed.token === 'string' ? parsed.token : DEFAULT_TOKEN
+    }
+  } catch (error) {
+    return { serverUrl: DEFAULT_SERVER_URL, token: DEFAULT_TOKEN }
+  }
+}
+
+function saveSettings(next) {
+  settings = {
+    serverUrl: next.serverUrl || DEFAULT_SERVER_URL,
+    token: next.token || ''
+  }
+  try {
+    fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2), 'utf8')
+  } catch (error) {
+    log(`{yellow-fg}Settings not saved: ${error.message}{/}`)
+  }
+}
+
+function sanitizeUrl(raw) {
+  try {
+    const url = new URL(raw)
+    url.search = ''
+    return url.toString()
+  } catch (error) {
+    return raw
+  }
+}
+
+function buildWsUrl(serverUrl, token) {
+  let url
+  const raw = (serverUrl || '').trim()
+  try {
+    if (raw) {
+      const normalized = /^wss?:\/\//i.test(raw) || /^https?:\/\//i.test(raw)
+        ? raw
+        : `http://${raw}`
+      url = new URL(normalized)
+    } else {
+      url = new URL(DEFAULT_SERVER_URL)
+    }
+  } catch (error) {
+    url = new URL(DEFAULT_SERVER_URL)
+  }
+
+  if (url.protocol === 'https:' || url.protocol === 'wss:') {
+    url.protocol = 'wss:'
+  } else {
+    url.protocol = 'ws:'
+  }
+
+  url.search = ''
+  if (token) {
+    url.searchParams.set('token', token)
+  }
+  return url.toString()
+}
+
 // Key bindings
 botList.on('select item', (item, index) => {
   selectedIndex = index
@@ -309,6 +445,36 @@ screen.key('r', () => {
   }
   connect()
 })
+
+screen.key('c', () => {
+  settingsServerInput.setValue(settings.serverUrl || DEFAULT_SERVER_URL)
+  settingsTokenInput.setValue(settings.token || '')
+  settingsDialog.show()
+  settingsServerInput.focus()
+  screen.render()
+})
+
+settingsDialog.key('escape', () => {
+  settingsDialog.hide()
+  botList.focus()
+  screen.render()
+})
+
+settingsDialog.on('submit', () => {
+  const serverUrl = settingsServerInput.getValue().trim() || DEFAULT_SERVER_URL
+  const token = settingsTokenInput.getValue().trim()
+  saveSettings({ serverUrl, token })
+  settingsDialog.hide()
+  botList.focus()
+  if (ws && connected) {
+    ws.close()
+  }
+  connect()
+  screen.render()
+})
+
+settingsServerInput.key('enter', () => settingsDialog.submit())
+settingsTokenInput.key('enter', () => settingsDialog.submit())
 
 screen.key('s', () => {
   // Show spawn dialog
@@ -369,6 +535,16 @@ jobDialog.key('escape', () => {
 })
 
 screen.key('k', () => {
+  const bot = bots[selectedIndex]
+  if (!bot) {
+    log('{yellow-fg}No bot selected{/}')
+    return
+  }
+  log(`Despawning ${bot.name || bot.id}`)
+  send('despawn', { botId: bot.id })
+})
+
+screen.key('x', () => {
   const bot = bots[selectedIndex]
   if (!bot) {
     log('{yellow-fg}No bot selected{/}')

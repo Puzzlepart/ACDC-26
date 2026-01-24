@@ -570,6 +570,35 @@ function stopJob(state, options = {}) {
   }
 }
 
+function despawnBot(state, reason = 'disconnect') {
+  if (!state) return
+  stopJob(state, { broadcast: false })
+  if (state.viewerServer) {
+    try {
+      state.viewerServer.close()
+    } catch (error) {
+      console.error(`[remote-control] viewer close failed (${state.id})`, error)
+    }
+    state.viewerServer = null
+  }
+  if (state.bot) {
+    try {
+      if (typeof state.bot.quit === 'function') {
+        state.bot.quit(reason)
+      } else if (typeof state.bot.end === 'function') {
+        state.bot.end()
+      }
+    } catch (error) {
+      console.error(`[remote-control] bot quit failed (${state.id})`, error)
+    }
+  }
+  bots.delete(state.id)
+  if (defaultBotId === state.id) {
+    defaultBotId = bots.keys().next().value || null
+  }
+  broadcastBotList()
+}
+
 function resolveInitialJob(botName, index) {
   const assigned = CONFIG.jobs.assignments.get(botName)
   if (assigned) return assigned
@@ -888,6 +917,14 @@ wss.on('connection', (ws, req) => {
         stopMotion(state)
       }
       if (didChange) broadcastBotList()
+      send(ws, { type: 'done', id })
+      return
+    }
+
+    if (type === 'despawn') {
+      const state = getState(args.botId)
+      send(ws, { type: 'ack', id })
+      despawnBot(state, args.reason)
       send(ws, { type: 'done', id })
       return
     }

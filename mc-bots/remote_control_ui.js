@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'cccpccc.layout.v1'
+const SETTINGS_KEY = 'cccpccc.settings.v1'
 
 const statusEl = document.getElementById('status')
 const telemetryEl = document.getElementById('telemetry')
@@ -33,6 +34,8 @@ const layoutPanel = document.getElementById('layout-panel')
 const hiddenCardsListEl = document.getElementById('hidden-cards-list')
 const gridEl = document.getElementById('card-grid')
 const tokenInputEl = document.getElementById('token')
+const serverUrlEl = document.getElementById('server-url')
+const viewerHostEl = document.getElementById('viewer-host')
 
 let ws
 let lastCommandId = 0
@@ -45,6 +48,7 @@ let lastMouseX = 0
 let lastMouseY = 0
 let lookSensitivity = 0.0025
 let viewerHost = location.hostname
+let viewerHostOverride = ''
 let botsCache = []
 let jobsCache = []
 let mindcraftProfiles = []
@@ -81,6 +85,18 @@ function suggestComradeName() {
 
 if (document.getElementById('spawn-name')) {
   document.getElementById('spawn-name').placeholder = suggestComradeName()
+}
+
+const settings = loadSettings()
+if (serverUrlEl && settings.serverUrl) {
+  serverUrlEl.value = settings.serverUrl
+}
+if (tokenInputEl && settings.token) {
+  tokenInputEl.value = settings.token
+}
+if (viewerHostEl && settings.viewerHost) {
+  viewerHostEl.value = settings.viewerHost
+  viewerHostOverride = settings.viewerHost
 }
 
 // Auto-populate auth token with default if not set
@@ -156,7 +172,13 @@ function updateBotSelect(bots) {
 
 function setViewerSrc(viewerPort) {
   if (!viewerPort) return
-  const url = new URL(`https://${viewerHost}`)
+  const hostOverride = viewerHostOverride && viewerHostOverride.trim()
+  const base = hostOverride
+    ? (hostOverride.startsWith('http://') || hostOverride.startsWith('https://')
+        ? hostOverride
+        : `https://${hostOverride}`)
+    : `https://${viewerHost}`
+  const url = new URL(base)
   if (viewerControlEnabled) {
     url.searchParams.set('control', 'true')
     const token = tokenInputEl ? tokenInputEl.value.trim() : ''
@@ -256,12 +278,10 @@ function setMindcraftAvailability(enabled, available) {
 }
 
 document.getElementById('connect').addEventListener('click', () => {
-  const token = document.getElementById('token').value.trim()
-  const url = new URL(window.location.href)
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-  url.searchParams.set('token', token)
+  const token = tokenInputEl ? tokenInputEl.value.trim() : ''
+  const wsUrl = buildWsUrl(token)
 
-  ws = new WebSocket(url.toString())
+  ws = new WebSocket(wsUrl)
 
   ws.addEventListener('open', () => logStatus('Connected'))
   ws.addEventListener('close', () => logStatus('Disconnected'))
@@ -278,7 +298,7 @@ document.getElementById('connect').addEventListener('click', () => {
         lookSensitivity = serverSensitivity
         lookSensitivityEl.value = String(serverSensitivity)
       }
-      if (hostOverride) {
+      if (hostOverride && !viewerHostOverride) {
         viewerHost = hostOverride
       }
       selectedBotId = defaultBotId || selectedBotId
@@ -307,6 +327,8 @@ document.getElementById('connect').addEventListener('click', () => {
       logStatus(`Error: ${data.message || 'unknown'}`)
     }
   })
+
+  saveSettings()
 })
 
 document.getElementById('disconnect').addEventListener('click', () => {
@@ -487,7 +509,25 @@ toggleViewerControlEl.addEventListener('click', () => {
 
 if (tokenInputEl) {
   tokenInputEl.addEventListener('change', () => {
+    saveSettings()
     if (!viewerControlEnabled) return
+    const active = botsCache.find(bot => bot.id === selectedBotId)
+    if (active && active.viewerPort) {
+      setViewerSrc(active.viewerPort)
+    }
+  })
+}
+
+if (serverUrlEl) {
+  serverUrlEl.addEventListener('change', () => {
+    saveSettings()
+  })
+}
+
+if (viewerHostEl) {
+  viewerHostEl.addEventListener('change', () => {
+    viewerHostOverride = viewerHostEl.value.trim()
+    saveSettings()
     const active = botsCache.find(bot => bot.id === selectedBotId)
     if (active && active.viewerPort) {
       setViewerSrc(active.viewerPort)
@@ -566,6 +606,60 @@ function loadLayoutState() {
   } catch (error) {
     return { order: [], hidden: [], minimized: [], sizes: {} }
   }
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return {
+      serverUrl: typeof parsed.serverUrl === 'string' ? parsed.serverUrl : '',
+      token: typeof parsed.token === 'string' ? parsed.token : '',
+      viewerHost: typeof parsed.viewerHost === 'string' ? parsed.viewerHost : ''
+    }
+  } catch (error) {
+    return {}
+  }
+}
+
+function saveSettings() {
+  const next = {
+    serverUrl: serverUrlEl ? serverUrlEl.value.trim() : '',
+    token: tokenInputEl ? tokenInputEl.value.trim() : '',
+    viewerHost: viewerHostEl ? viewerHostEl.value.trim() : ''
+  }
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(next))
+}
+
+function buildWsUrl(token) {
+  const raw = serverUrlEl ? serverUrlEl.value.trim() : ''
+  let url
+  try {
+    if (raw) {
+      const withProto = raw.match(/^wss?:\/\//i) || raw.match(/^https?:\/\//i)
+        ? raw
+        : `http://${raw}`
+      url = new URL(withProto)
+    } else {
+      url = new URL(window.location.href)
+    }
+  } catch (error) {
+    url = new URL(window.location.href)
+  }
+
+  if (url.protocol === 'https:' || url.protocol === 'wss:') {
+    url.protocol = 'wss:'
+  } else {
+    url.protocol = 'ws:'
+  }
+
+  url.pathname = '/'
+  url.search = ''
+  if (token) {
+    url.searchParams.set('token', token)
+  }
+  return url.toString()
 }
 
 function saveLayoutState() {

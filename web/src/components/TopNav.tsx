@@ -2,8 +2,8 @@ const navLinks = [
   { label: '~/', href: '/', external: false },
   { label: 'CCCP', href: '/cccp', external: false },
   { label: 'Badges', href: '/badges', external: false },
-  { label: 'Bot Control', href: 'http://mc.craycon.no:4000', external: true },
-  { label: 'Bot Viewer', href: 'http://mc.craycon.no:3000', external: true },
+  { label: 'Bot Control', href: 'https://bots.craycon.no', external: true },
+  { label: 'Bot Viewer', href: 'https://cam.craycon.no', external: true },
   { label: 'SharePoint', href: 'https://craycon.sharepoint.com', external: true },
   { label: 'ACDC', href: 'https://arcticclouddeveloperchallenge.net', external: true },
 ]

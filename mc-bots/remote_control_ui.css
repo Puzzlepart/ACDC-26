@@ -16,6 +16,7 @@ body {
     radial-gradient(800px 500px at 90% 10%, rgba(243, 192, 74, 0.18), transparent 60%),
     #0b0d12;
   color: var(--text);
+  min-height: 100vh;
 }
 .shell { max-width: 1340px; margin: 0 auto; padding: 14px; }
 .main-header {

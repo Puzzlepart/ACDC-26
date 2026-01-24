@@ -38,7 +38,7 @@ let ws
 let lastCommandId = 0
 
 let selectedBotId = ''
-let controlsEnabled = false
+let controlsEnabled = true  // Enable by default
 let viewerControlEnabled = false
 let isLooking = false
 let lastMouseX = 0
@@ -86,6 +86,11 @@ if (document.getElementById('spawn-name')) {
 // Auto-populate auth token with default if not set
 if (tokenInputEl && !tokenInputEl.value) {
   tokenInputEl.value = 'YOLO_SWAG'
+}
+
+// Enable viewer controls by default
+if (overlayEl) {
+  overlayEl.classList.add('active')
 }
 
 function logStatus(text) {

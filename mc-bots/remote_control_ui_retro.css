@@ -1,0 +1,436 @@
+* { box-sizing: border-box; }
+
+:root {
+  --red: #ff0000;
+  --blue: #0000ff;
+  --lime: #00ff00;
+  --cyan: #00ffff;
+  --magenta: #ff00ff;
+  --yellow: #ffff00;
+  --silver: #c0c0c0;
+  --gray: #808080;
+}
+
+body {
+  font-family: "Comic Sans MS", "Arial", "Courier New", sans-serif;
+  margin: 0;
+  background: #008080 url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect fill="%23006666" width="2" height="2"/><rect fill="%23008080" x="2" width="2" height="2"/><rect fill="%23008080" y="2" width="2" height="2"/><rect fill="%23006666" x="2" y="2" width="2" height="2"/></svg>');
+  color: #000000;
+  min-height: 100vh;
+}
+
+.shell { 
+  max-width: 1000px; 
+  margin: 0 auto; 
+  padding: 8px;
+  background: #c0c0c0;
+  border: 4px outset #ffffff;
+}
+
+.main-header {
+  background: linear-gradient(180deg, #000080 0%, #0000cc 100%);
+  border: 3px ridge #ffffff;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.title-block { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 4px; 
+}
+
+h1 {
+  font-size: 28px;
+  margin: 0;
+  color: #ffff00;
+  text-shadow: 2px 2px #ff0000, 3px 3px #000000;
+  font-family: "Comic Sans MS", cursive;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.subtitle { 
+  font-size: 14px; 
+  color: #00ffff;
+  font-family: "Arial", sans-serif;
+  font-weight: bold;
+}
+
+.header-actions { 
+  position: relative;
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 3px outset #ffffff;
+  background: #c0c0c0;
+  color: #000000;
+  font-size: 16px;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.icon-button:hover { 
+  background: #d4d0c8;
+}
+
+.icon-button:active {
+  border-style: inset;
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.panel {
+  position: absolute;
+  right: 0;
+  top: 48px;
+  min-width: 220px;
+  padding: 8px;
+  border: 3px ridge #ffffff;
+  background: #c0c0c0;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+  z-index: 20;
+}
+
+.panel.is-hidden { display: none; }
+
+.panel-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #000080;
+  margin-bottom: 8px;
+  font-family: "Arial", sans-serif;
+  text-decoration: underline;
+}
+
+.panel-list { display: grid; gap: 6px; }
+
+.panel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: #000000;
+  font-family: "Courier New", monospace;
+}
+
+.panel-item button {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 11px;
+  text-transform: none;
+  margin: 0;
+}
+
+.panel-empty { 
+  font-size: 12px; 
+  color: #808080;
+  font-style: italic;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.card {
+  background: #ffffff;
+  padding: 0;
+  border: 3px ridge #000000;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+}
+
+.card--wide { grid-column: 1 / -1; }
+
+.card-head {
+  background: linear-gradient(180deg, #000080 0%, #0000cc 100%);
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 2px solid #000000;
+  user-select: none;
+  cursor: grab;
+}
+
+.card-head:active { cursor: grabbing; }
+
+.card-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffffff;
+  font-family: "Arial", sans-serif;
+  text-transform: uppercase;
+}
+
+.card-actions { display: flex; gap: 4px; }
+
+.card-action {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  border: 2px outset #ffffff;
+  background: #c0c0c0;
+  color: #000000;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.card-action:hover { background: #d4d0c8; }
+
+.card-action:active {
+  border-style: inset;
+}
+
+.card-body { 
+  padding: 10px;
+  display: grid; 
+  gap: 8px; 
+  background: #ffffff;
+}
+
+.card-body.fill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-body.fill pre {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+}
+
+.card-body.fill .viewer-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.card-body.fill iframe {
+  height: 100%;
+}
+
+.card.is-minimized .card-body { display: none; }
+.card.is-hidden { display: none; }
+.card.is-dragging { 
+  opacity: 0.7; 
+  border-style: dashed;
+  border-color: #ff00ff;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+  background: linear-gradient(135deg, transparent 0%, transparent 40%, #808080 40%, #808080 50%, #c0c0c0 50%, #c0c0c0 60%, transparent 60%);
+}
+
+label { 
+  display: block; 
+  font-size: 12px; 
+  margin-bottom: 4px; 
+  color: #000000;
+  font-weight: bold;
+  font-family: "Arial", sans-serif;
+}
+
+input, select {
+  width: 100%;
+  padding: 4px 6px;
+  border: 2px inset #ffffff;
+  background: #ffffff;
+  color: #000000;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+}
+
+input:focus, select:focus {
+  outline: 2px dotted #000000;
+  outline-offset: 2px;
+}
+
+button {
+  width: 100%;
+  padding: 6px 12px;
+  cursor: pointer;
+  background: #c0c0c0;
+  border: 3px outset #ffffff;
+  color: #000000;
+  font-weight: bold;
+  font-family: "Arial", sans-serif;
+  font-size: 13px;
+  text-transform: uppercase;
+  margin: 4px 0;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+button:hover {
+  background: #d4d0c8;
+}
+
+button:active {
+  border-style: inset;
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+button.secondary {
+  background: linear-gradient(180deg, #ff6600 0%, #cc5500 100%);
+  border-color: #ff9933;
+  color: #ffffff;
+  text-shadow: 1px 1px #000000;
+}
+
+.row { 
+  display: grid; 
+  gap: 8px; 
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+}
+
+details { 
+  margin-top: 8px; 
+  border: 2px groove #808080;
+  background: #ffffcc;
+  padding: 4px;
+}
+
+summary { 
+  list-style: none; 
+  cursor: pointer; 
+  padding: 6px 8px; 
+  font-size: 13px;
+  font-weight: bold;
+  color: #800080;
+  font-family: "Arial", sans-serif;
+  background: #ffff99;
+  border: 1px solid #cccc00;
+  margin: -4px -4px 4px -4px;
+}
+
+summary::-webkit-details-marker { display: none; }
+
+summary:hover {
+  background: #ffff66;
+}
+
+.accordion-body { 
+  padding: 8px; 
+  display: grid; 
+  gap: 8px; 
+}
+
+pre { 
+  background: #000000;
+  color: #00ff00;
+  padding: 8px; 
+  border: 2px solid #00ff00;
+  min-height: 120px; 
+  overflow: auto; 
+  font-size: 12px;
+  font-family: "Courier New", "Courier", monospace;
+  box-shadow: inset 2px 2px 4px rgba(0, 255, 0, 0.3);
+}
+
+iframe { 
+  width: 100%; 
+  height: 320px; 
+  border: 3px inset #808080;
+  background: #ffffff;
+}
+
+.viewer-wrap { 
+  position: relative;
+  border: 2px solid #000000;
+}
+
+.viewer-overlay { 
+  position: absolute; 
+  inset: 0;
+  pointer-events: none; 
+}
+
+.viewer-overlay.active { 
+  pointer-events: auto; 
+  cursor: grab;
+  outline: 3px dashed #ff00ff;
+  outline-offset: -3px;
+}
+
+.viewer-overlay.active.is-looking { 
+  cursor: grabbing; 
+}
+
+.viewer-hint {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  background: #ffff00;
+  border: 3px ridge #000000;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-family: "Comic Sans MS", cursive;
+  color: #000000;
+  font-weight: bold;
+  max-width: 320px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+.viewer-overlay.active .viewer-hint { 
+  opacity: 1; 
+}
+
+/* UNDER CONSTRUCTION GIF VIBES */
+.main-header::before {
+  content: '🚧';
+  position: absolute;
+  left: 8px;
+  font-size: 20px;
+  animation: blink 1s infinite;
+}
+
+.main-header::after {
+  content: '🚧';
+  position: absolute;
+  right: 8px;
+  font-size: 20px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Visitor counter vibes */
+h1::after {
+  content: ' [ONLINE]';
+  font-size: 14px;
+  color: #00ff00;
+  animation: blink 2s infinite;
+}

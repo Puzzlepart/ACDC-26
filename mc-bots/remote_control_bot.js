@@ -1076,6 +1076,8 @@ wss.on('connection', (ws, req) => {
             }
           }
           
+          console.log(`[remote-control] Spawning ${username} (${i + 1}/${count})...`)
+          
           // Spawn bot with job type (but don't auto-start job yet)
           const state = spawnBot({ 
             username, 
@@ -1085,63 +1087,87 @@ wss.on('connection', (ws, req) => {
             autoStartJob: false  // We'll start manually after positioning
           })
           
-          spawnedBots.push({
-            botId: state.id,
-            viewerPort: state.viewerPort,
-            jobType,
-            targetPosition: targetPos
-          })
-          
-          // Wait for bot to spawn, then move it, then start job
-          state.bot.once('spawn', async () => {
-            try {
-              // Store spawn position for next bot
-              if (!lastSpawnPosition || botIndex === 0) {
-                lastSpawnPosition = state.bot.entity.position.clone()
-                console.log(`[remote-control] Base spawn position: ${lastSpawnPosition.x.toFixed(1)}, ${lastSpawnPosition.y.toFixed(1)}, ${lastSpawnPosition.z.toFixed(1)}`)
-              }
-              
-              // Move bot to offset position if needed
-              if (shouldMove && targetPos && state.bot.pathfinder) {
-                console.log(`[remote-control] ${username} moving to: X=${targetPos.x.toFixed(1)}, Z=${targetPos.z.toFixed(1)} (${botIndex * 10} blocks away)`)
+          // Wait for THIS bot to spawn before continuing
+          await new Promise((resolve) => {
+            state.bot.once('spawn', async () => {
+              try {
+                console.log(`[remote-control] ${username} spawned successfully`)
                 
-                const goal = new goals.GoalNear(targetPos.x, targetPos.y, targetPos.z, 1)
-                await state.bot.pathfinder.goto(goal)
+                // Store spawn position for next bot
+                if (!lastSpawnPosition || botIndex === 0) {
+                  lastSpawnPosition = state.bot.entity.position.clone()
+                  console.log(`[remote-control] Base spawn position: ${lastSpawnPosition.x.toFixed(1)}, ${lastSpawnPosition.y.toFixed(1)}, ${lastSpawnPosition.z.toFixed(1)}`)
+                }
                 
-                console.log(`[remote-control] ${username} reached position`)
-              }
-              
-              // Now start the job
-              if (state.assignedJob && JOBS[state.assignedJob]) {
-                await new Promise(resolve => setTimeout(resolve, 500)) // Brief pause
-                try {
-                  startJob(state, state.assignedJob)
-                  console.log(`[remote-control] ${username} started ${state.assignedJob}`)
-                } catch (error) {
-                  console.error(`[remote-control] ${username} job start failed:`, error)
+                // Move bot to offset position if needed
+                if (shouldMove && targetPos && state.bot.pathfinder) {
+                  console.log(`[remote-control] ${username} moving to: X=${targetPos.x.toFixed(1)}, Z=${targetPos.z.toFixed(1)} (${botIndex * 10} blocks away)`)
+                  
+                  const goal = new goals.GoalNear(targetPos.x, targetPos.y, targetPos.z, 1)
+                  await state.bot.pathfinder.goto(goal)
+                  
+                  console.log(`[remote-control] ${username} reached position`)
                 }
-              }
-            } catch (error) {
-              console.error(`[remote-control] ${username} positioning failed:`, error.message)
-              // Start job anyway, even if movement failed
-              if (state.assignedJob && JOBS[state.assignedJob]) {
-                try {
-                  startJob(state, state.assignedJob)
-                } catch (jobError) {
-                  console.error(`[remote-control] ${username} job start failed:`, jobError)
+                
+                // Now start the job
+                if (state.assignedJob && JOBS[state.assignedJob]) {
+                  await new Promise(res => setTimeout(res, 500)) // Brief pause
+                  try {
+                    startJob(state, state.assignedJob)
+                    console.log(`[remote-control] ${username} started ${state.assignedJob}`)
+                  } catch (error) {
+                    console.error(`[remote-control] ${username} job start failed:`, error)
+                  }
                 }
+                
+                spawnedBots.push({
+                  botId: state.id,
+                  viewerPort: state.viewerPort,
+                  jobType,
+                  targetPosition: targetPos
+                })
+                
+                // Toggle axis after last bot
+                if (botIndex === count - 1) {
+                  spawnOffsetAxis = spawnOffsetAxis === 'x' ? 'z' : 'x'
+                  console.log(`[remote-control] Next bulk spawn will use ${spawnOffsetAxis.toUpperCase()} axis`)
+                }
+                
+                resolve()
+              } catch (error) {
+                console.error(`[remote-control] ${username} setup failed:`, error.message)
+                // Start job anyway, even if movement failed
+                if (state.assignedJob && JOBS[state.assignedJob]) {
+                  try {
+                    startJob(state, state.assignedJob)
+                  } catch (jobError) {
+                    console.error(`[remote-control] ${username} job start failed:`, jobError)
+                  }
+                }
+                
+                spawnedBots.push({
+                  botId: state.id,
+                  viewerPort: state.viewerPort,
+                  jobType,
+                  targetPosition: targetPos
+                })
+                
+                resolve()
               }
-            }
+            })
             
-            // Toggle axis after last bot
-            if (botIndex === count - 1) {
-              spawnOffsetAxis = spawnOffsetAxis === 'x' ? 'z' : 'x'
-              console.log(`[remote-control] Next bulk spawn will use ${spawnOffsetAxis.toUpperCase()} axis`)
-            }
+            // Timeout if bot doesn't spawn within 15 seconds
+            setTimeout(() => {
+              console.error(`[remote-control] ${username} spawn timeout`)
+              resolve()
+            }, 15000)
           })
           
-          // Delay between spawns to avoid server overload
-          await new Promise(resolve => setTimeout(resolve, 2000))
+          // Additional delay between spawns
+          if (i < count - 1) {
+            console.log(`[remote-control] Waiting 2s before next spawn...`)
+            await new Promise(res => setTimeout(res, 2000))
+          }
         }
         
         send(ws, { 

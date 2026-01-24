@@ -86,6 +86,8 @@ async function run(state, task, options) {
   let searchCount = 0
   let lastStatus = 'starting'
   let plantCount = 0
+  let harvestCount = 0
+  let totalHarvested = 0
 
   while (!task.cancelled) {
     if (!bot.entity) {
@@ -118,10 +120,18 @@ async function run(state, task, options) {
       if (lastStatus !== 'harvesting') {
         bot.chat(`Found ripe wheat! Starting harvest.`)
         lastStatus = 'harvesting'
+        harvestCount = 0
       }
       try {
         await bot.dig(ripe)
-        notifyHarvest(bot, 1)
+        harvestCount++
+        totalHarvested++
+        // Only notify every 10 harvests to avoid spam
+        if (harvestCount % 10 === 0) {
+          notifyHarvest(bot, harvestCount)
+          bot.chat(`Harvested ${totalHarvested} wheat total (${harvestCount} this session)`)
+          harvestCount = 0
+        }
         lastActivity = Date.now()
       } catch (error) {
         console.log(`[farmer-wheat] ${bot.username} harvest failed:`, error.message)

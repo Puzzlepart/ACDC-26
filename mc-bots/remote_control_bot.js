@@ -38,7 +38,7 @@ const CONFIG = {
   host: process.env.MC_HOST || 'mc.craycon.no',
   port: Number(process.env.MC_PORT || 25565),
   username: process.env.MC_USERNAME || 'comrade_remote',
-  viewerPort: Number(process.env.VIEWER_PORT || 443),
+  viewerPort: Number(process.env.VIEWER_PORT || 3000),
   controlPort: Number(process.env.CONTROL_PORT || 4000),
   viewerHost: process.env.VIEWER_HOST || 'cam.craycon.no',
   authToken: process.env.BOT_AUTH_TOKEN || '',

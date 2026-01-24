@@ -156,7 +156,7 @@ function updateBotSelect(bots) {
 
 function setViewerSrc(viewerPort) {
   if (!viewerPort) return
-  const url = new URL(`https://${viewerHost}:${viewerPort}`)
+  const url = new URL(`https://${viewerHost}`)
   if (viewerControlEnabled) {
     url.searchParams.set('control', 'true')
     const token = tokenInputEl ? tokenInputEl.value.trim() : ''

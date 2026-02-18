@@ -101,6 +101,26 @@
         </div>
       </div>
 
+      <div class="card" data-card-id="work-area" data-card-title="Work Area">
+        <div class="card-head" draggable="true">
+          <h3>Work Area</h3>
+          <div class="card-actions">
+            <button class="card-action" data-card-action="minimize" aria-label="Minimize">-</button>
+            <button class="card-action" data-card-action="close" aria-label="Close">x</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <label>Anchor Override (X,Y,Z)</label>
+          <input id="work-area-input" placeholder="123,64,-45" />
+          <div class="row">
+            <button id="work-area-apply">Apply</button>
+            <button id="work-area-clear" class="secondary">Clear</button>
+          </div>
+          <p id="work-area-status" class="hint">Using brigadier location.</p>
+          <p class="hint">Applies instantly to all active farmer bots.</p>
+        </div>
+      </div>
+
       <div class="card" data-card-id="move" data-card-title="Move To">
         <div class="card-head" draggable="true">
           <h3>Move To</h3>

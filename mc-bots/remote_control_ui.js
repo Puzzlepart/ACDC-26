@@ -17,6 +17,10 @@ const jobBotSelectEl = document.getElementById('job-bot-select')
 const jobOptionsEl = document.getElementById('job-options')
 const jobStartEl = document.getElementById('job-start')
 const jobStopEl = document.getElementById('job-stop')
+const workAreaInputEl = document.getElementById('work-area-input')
+const workAreaApplyEl = document.getElementById('work-area-apply')
+const workAreaClearEl = document.getElementById('work-area-clear')
+const workAreaStatusEl = document.getElementById('work-area-status')
 const mindcraftHostEl = document.getElementById('mindcraft-host')
 const mindcraftPortEl = document.getElementById('mindcraft-port')
 const mindcraftConnectEl = document.getElementById('mindcraft-connect')
@@ -51,6 +55,7 @@ let lastMouseY = 0
 let lookSensitivity = 0.0025
 let viewerHost = location.hostname
 let viewerHostOverride = ''
+let currentWorkArea = null
 let botsCache = []
 let jobsCache = []
 let mindcraftProfiles = []
@@ -113,6 +118,38 @@ if (overlayEl) {
 
 function logStatus(text) {
   statusEl.textContent = text
+}
+
+function formatWorkArea(workArea) {
+  if (!workArea) return ''
+  const x = Number.isFinite(workArea.x) ? workArea.x : 0
+  const y = Number.isFinite(workArea.y) ? workArea.y : 0
+  const z = Number.isFinite(workArea.z) ? workArea.z : 0
+  return `${x},${y},${z}`
+}
+
+function renderWorkArea(workArea) {
+  currentWorkArea = workArea || null
+  if (workAreaInputEl) {
+    workAreaInputEl.value = workArea ? formatWorkArea(workArea) : ''
+  }
+  if (workAreaStatusEl) {
+    if (!workArea) {
+      workAreaStatusEl.textContent = 'Using brigadier location.'
+    } else {
+      workAreaStatusEl.textContent = `Override active at ${formatWorkArea(workArea)}.`
+    }
+  }
+}
+
+function submitWorkArea() {
+  if (!workAreaInputEl) return
+  const value = workAreaInputEl.value.trim()
+  if (!value) {
+    send('work-area', { action: 'clear' }, { includeBotId: false })
+    return
+  }
+  send('work-area', { action: 'set', value }, { includeBotId: false })
 }
 
 function formatPerformanceSummary(perf) {
@@ -315,7 +352,7 @@ document.getElementById('connect').addEventListener('click', () => {
       }
     }
     if (data.type === 'hello') {
-      const { bots, defaultBotId, lookSensitivity: serverSensitivity, viewerHost: hostOverride, jobs, mindcraft } = data.payload
+      const { bots, defaultBotId, lookSensitivity: serverSensitivity, viewerHost: hostOverride, jobs, mindcraft, workArea } = data.payload
       if (Number.isFinite(serverSensitivity)) {
         lookSensitivity = serverSensitivity
         lookSensitivityEl.value = String(serverSensitivity)
@@ -326,6 +363,7 @@ document.getElementById('connect').addEventListener('click', () => {
       selectedBotId = defaultBotId || selectedBotId
       updateBotSelect(bots || [])
       updateJobSelect(jobs || [])
+      renderWorkArea(workArea || null)
       if (mindcraft) {
         mindcraftHostEl.value = mindcraft.host || mindcraftHostEl.value
         mindcraftPortEl.value = mindcraft.port || mindcraftPortEl.value
@@ -344,6 +382,9 @@ document.getElementById('connect').addEventListener('click', () => {
       if (payload.port) mindcraftPortEl.value = String(payload.port)
       updateMindcraftAgents(payload.agents || [])
       setMindcraftAvailability(payload.enabled, payload.available)
+    }
+    if (data.type === 'work-area') {
+      renderWorkArea(data.payload && data.payload.workArea ? data.payload.workArea : null)
     }
     if (data.type === 'error') {
       logStatus(`Error: ${data.message || 'unknown'}`)
@@ -434,6 +475,26 @@ jobStopEl.addEventListener('click', () => {
   }
   send('job', { action: 'stop', botId }, { includeBotId: false })
 })
+
+if (workAreaApplyEl) {
+  workAreaApplyEl.addEventListener('click', () => {
+    submitWorkArea()
+  })
+}
+
+if (workAreaClearEl) {
+  workAreaClearEl.addEventListener('click', () => {
+    send('work-area', { action: 'clear' }, { includeBotId: false })
+  })
+}
+
+if (workAreaInputEl) {
+  workAreaInputEl.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    submitWorkArea()
+  })
+}
 
 mindcraftConnectEl.addEventListener('click', () => {
   send(

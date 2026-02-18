@@ -154,6 +154,7 @@ const VIEWER_HTML = `<!DOCTYPE html>
 const bots = new Map()
 let nextViewerPort = CONFIG.viewerPort
 let defaultBotId = null
+let farmerWorkArea = null
 
 let telemetryTimer = null
 let perfLogTimer = null
@@ -454,16 +455,63 @@ function startTask(state, name, runner) {
     })
 }
 
+function isFarmerJob(jobName) {
+  if (!jobName) return false
+  return jobName === 'farmer' || jobName === 'sparse-farmer' || jobName.startsWith('farmer-')
+}
+
+function parseWorkArea(raw) {
+  if (!raw && raw !== 0) return null
+  if (typeof raw === 'string') {
+    const parts = raw.split(',').map(value => Number(value.trim()))
+    if (parts.length !== 3 || !parts.every(Number.isFinite)) return null
+    return { x: parts[0], y: parts[1], z: parts[2] }
+  }
+  if (typeof raw === 'object') {
+    const x = Number(raw.x)
+    const y = Number(raw.y)
+    const z = Number(raw.z)
+    if (![x, y, z].every(Number.isFinite)) return null
+    return { x, y, z }
+  }
+  return null
+}
+
+function getWorkAreaPayload() {
+  if (!farmerWorkArea) return null
+  return { ...farmerWorkArea }
+}
+
+function applyWorkAreaToActiveFarmers() {
+  for (const state of bots.values()) {
+    if (!isFarmerJob(state.jobName)) continue
+    if (!state.jobOptions) continue
+    if (farmerWorkArea) {
+      state.jobOptions.workArea = { ...farmerWorkArea }
+    } else {
+      delete state.jobOptions.workArea
+    }
+  }
+}
+
+function broadcastWorkArea() {
+  broadcast({ type: 'work-area', payload: { workArea: getWorkAreaPayload() } })
+}
+
 function buildTelemetry(state) {
   if (!state || !state.bot || !state.bot.entity) {
     return { id: state ? state.id : 'unknown', inGame: false }
   }
 
+  const workArea = (state.jobOptions && state.jobOptions.workArea) || farmerWorkArea
   const brigadierName = (state.jobOptions && state.jobOptions.brigadierName) || CONFIG.jobs.farmer.brigadierName || 'comrade_remote'
   const brigadierPlayer = state.bot.players ? state.bot.players[brigadierName] : null
   const brigadierEntity = brigadierPlayer && brigadierPlayer.entity ? brigadierPlayer.entity : null
-  const distanceToBrigadier = brigadierEntity
-    ? state.bot.entity.position.distanceTo(brigadierEntity.position)
+  const anchorPos = workArea
+    ? new Vec3(workArea.x, workArea.y, workArea.z)
+    : (brigadierEntity ? brigadierEntity.position : null)
+  const distanceToAnchor = anchorPos
+    ? state.bot.entity.position.distanceTo(anchorPos)
     : null
   const maxDistanceFromBrigadier = Number(
     (state.jobOptions && state.jobOptions.maxDistanceFromBrigadier) || CONFIG.jobs.farmer.maxDistanceFromBrigadier || 75
@@ -481,11 +529,13 @@ function buildTelemetry(state) {
     pitch: state.bot.entity.pitch,
     job: state.jobName || null,
     brigadier: {
-      name: brigadierName,
-      distance: Number.isFinite(distanceToBrigadier) ? Number(distanceToBrigadier.toFixed(2)) : null,
+      mode: workArea ? 'work-area' : 'brigadier',
+      name: workArea ? null : brigadierName,
+      workArea: workArea ? { ...workArea } : null,
+      distance: Number.isFinite(distanceToAnchor) ? Number(distanceToAnchor.toFixed(2)) : null,
       maxDistance: maxDistanceFromBrigadier,
-      inRange: Number.isFinite(distanceToBrigadier)
-        ? distanceToBrigadier <= maxDistanceFromBrigadier
+      inRange: Number.isFinite(distanceToAnchor)
+        ? distanceToAnchor <= maxDistanceFromBrigadier
         : null
     },
     task: state.activeTask ? state.activeTask.name : 'idle',
@@ -644,9 +694,12 @@ function getJobList() {
 }
 
 function buildJobOptions(jobName, overrides = {}) {
-  const baseFarmer = jobName.startsWith('farmer-') ? (CONFIG.jobs.farmer || {}) : {}
+  const baseFarmer = isFarmerJob(jobName) ? (CONFIG.jobs.farmer || {}) : {}
   const base = { ...baseFarmer, ...(CONFIG.jobs[jobName] || {}) }
   const options = { ...base, ...overrides }
+  if (isFarmerJob(jobName) && overrides.workArea === undefined && farmerWorkArea) {
+    options.workArea = { ...farmerWorkArea }
+  }
   // Include dataverse webhook URL for farmer jobs
   if (CONFIG.dataverse.enabled && CONFIG.dataverse.webhookUrl) {
     options.webhookUrl = CONFIG.dataverse.webhookUrl
@@ -1008,6 +1061,7 @@ wss.on('connection', (ws, req) => {
       mcPort: CONFIG.port,
       viewerHost: CONFIG.viewerHost,
       jobs: getJobList(),
+      workArea: getWorkAreaPayload(),
       mindcraft: {
         enabled: CONFIG.mindcraft.enabled,
         available: mindcraftClientAvailable,
@@ -1042,6 +1096,33 @@ wss.on('connection', (ws, req) => {
     if (type === 'status') {
       const state = getState(args.botId)
       send(ws, { type: 'status', id, payload: buildTelemetry(state) })
+      return
+    }
+
+    if (type === 'work-area') {
+      const { action = 'set' } = args
+      if (action === 'clear') {
+        farmerWorkArea = null
+        applyWorkAreaToActiveFarmers()
+        broadcastWorkArea()
+        send(ws, { type: 'done', id, payload: { workArea: null } })
+        return
+      }
+
+      if (action === 'get') {
+        send(ws, { type: 'done', id, payload: { workArea: getWorkAreaPayload() } })
+        return
+      }
+
+      const parsed = parseWorkArea(args.workArea || args.point || args.value || args)
+      if (!parsed) {
+        send(ws, { type: 'error', id, message: 'work-area requires X,Y,Z or numeric x/y/z' })
+        return
+      }
+      farmerWorkArea = parsed
+      applyWorkAreaToActiveFarmers()
+      broadcastWorkArea()
+      send(ws, { type: 'done', id, payload: { workArea: getWorkAreaPayload() } })
       return
     }
 

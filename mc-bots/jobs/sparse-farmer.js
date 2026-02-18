@@ -69,10 +69,15 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
 
-function getBrigadierEntity(bot, brigadierName) {
-  if (!brigadierName) return null
+function getAnchorPosition(bot, options) {
+  const workArea = options && options.workArea
+  if (workArea && Number.isFinite(workArea.x) && Number.isFinite(workArea.y) && Number.isFinite(workArea.z)) {
+    return new Vec3(workArea.x, workArea.y, workArea.z)
+  }
+
+  const brigadierName = (options && options.brigadierName) || 'comrade_remote'
   const player = bot.players[brigadierName]
-  return player && player.entity ? player.entity : null
+  return player && player.entity ? player.entity.position : null
 }
 
 function computeRadiusPenalty(distance, maxDistance) {
@@ -108,14 +113,6 @@ async function run(state, task, options) {
   const bot = state.bot
   const cropType = options.crop || 'wheat'
   const crop = CROPS[cropType] || CROPS.wheat
-  const searchRadius = Number(options.radius || 24)
-  const idleMs = Number(options.idleMs || 1000)
-  const wanderChance = Number(options.wanderChance || 0.3)
-  const skipChance = Number(options.skipChance || 0.4)
-  const brigadierName = options.brigadierName || 'comrade_remote'
-  const maxDistanceFromBrigadier = Number(options.maxDistanceFromBrigadier || 75)
-  const leashMargin = Number(options.leashMargin || 8)
-  const returnStepMs = Number(options.returnStepMs || 300)
 
   let harvestCount = 0
   let totalHarvested = 0
@@ -130,6 +127,14 @@ async function run(state, task, options) {
       continue
     }
 
+    const searchRadius = Number(options.radius || 24)
+    const idleMs = Number(options.idleMs || 1000)
+    const wanderChance = Number(options.wanderChance || 0.3)
+    const skipChance = Number(options.skipChance || 0.4)
+    const maxDistanceFromBrigadier = Number(options.maxDistanceFromBrigadier || 75)
+    const leashMargin = Number(options.leashMargin || 8)
+    const returnStepMs = Number(options.returnStepMs || 300)
+
     // Escape water
     if (bot.entity.isInWater) {
       await escapeWater(bot)
@@ -137,18 +142,18 @@ async function run(state, task, options) {
       continue
     }
 
-    const brigadier = getBrigadierEntity(bot, brigadierName)
-    if (brigadier) {
-      const distToBrigadier = bot.entity.position.distanceTo(brigadier.position)
+    const anchor = getAnchorPosition(bot, options)
+    if (anchor) {
+      const distToBrigadier = bot.entity.position.distanceTo(anchor)
       if (distToBrigadier > maxDistanceFromBrigadier + leashMargin) {
-        await stepToward(bot, brigadier.position, returnStepMs, true)
+        await stepToward(bot, anchor, returnStepMs, true)
         await sleep(100)
         continue
       }
     }
 
-    const distForPenalty = brigadier ? bot.entity.position.distanceTo(brigadier.position) : 0
-    const radiusPenalty = brigadier ? computeRadiusPenalty(distForPenalty, maxDistanceFromBrigadier) : 1
+    const distForPenalty = anchor ? bot.entity.position.distanceTo(anchor) : 0
+    const radiusPenalty = anchor ? computeRadiusPenalty(distForPenalty, maxDistanceFromBrigadier) : 1
     const effectiveRadius = Math.max(6, Math.round(searchRadius * radiusPenalty))
 
     // Notify harvest after idle period

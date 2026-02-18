@@ -37,10 +37,15 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
 
-function getBrigadierEntity(bot, brigadierName) {
-  if (!brigadierName) return null
+function getAnchorPosition(bot, options) {
+  const workArea = options && options.workArea
+  if (workArea && Number.isFinite(workArea.x) && Number.isFinite(workArea.y) && Number.isFinite(workArea.z)) {
+    return new Vec3(workArea.x, workArea.y, workArea.z)
+  }
+
+  const brigadierName = (options && options.brigadierName) || 'comrade_remote'
   const player = bot.players[brigadierName]
-  return player && player.entity ? player.entity : null
+  return player && player.entity ? player.entity.position : null
 }
 
 function computeRadiusPenalty(distance, maxDistance) {
@@ -52,12 +57,6 @@ function computeRadiusPenalty(distance, maxDistance) {
 async function run(state, task, options) {
   const bot = state.bot
   const crop = CROPS[options.crop] || CROPS.wheat
-  const radius = Number(options.radius || 6)
-  const idleMs = Number(options.idleMs || 800)
-  const brigadierName = options.brigadierName || 'comrade_remote'
-  const maxDistanceFromBrigadier = Number(options.maxDistanceFromBrigadier || 75)
-  const leashMargin = Number(options.leashMargin || 8)
-  const returnStepMs = Number(options.returnStepMs || 300)
 
   while (!task.cancelled) {
     if (!bot.entity) {
@@ -65,18 +64,24 @@ async function run(state, task, options) {
       continue
     }
 
-    const brigadier = getBrigadierEntity(bot, brigadierName)
-    if (brigadier) {
-      const distToBrigadier = bot.entity.position.distanceTo(brigadier.position)
+    const radius = Number(options.radius || 6)
+    const idleMs = Number(options.idleMs || 800)
+    const maxDistanceFromBrigadier = Number(options.maxDistanceFromBrigadier || 75)
+    const leashMargin = Number(options.leashMargin || 8)
+    const returnStepMs = Number(options.returnStepMs || 300)
+
+    const anchor = getAnchorPosition(bot, options)
+    if (anchor) {
+      const distToBrigadier = bot.entity.position.distanceTo(anchor)
       if (distToBrigadier > maxDistanceFromBrigadier + leashMargin) {
-        await stepToward(bot, brigadier.position, returnStepMs, true)
+        await stepToward(bot, anchor, returnStepMs, true)
         await sleep(100)
         continue
       }
     }
 
-    const distForPenalty = brigadier ? bot.entity.position.distanceTo(brigadier.position) : 0
-    const radiusPenalty = brigadier ? computeRadiusPenalty(distForPenalty, maxDistanceFromBrigadier) : 1
+    const distForPenalty = anchor ? bot.entity.position.distanceTo(anchor) : 0
+    const radiusPenalty = anchor ? computeRadiusPenalty(distForPenalty, maxDistanceFromBrigadier) : 1
     const effectiveRadius = Math.max(6, Math.round(radius * radiusPenalty))
 
     const ripe = findRipeCrop(bot, crop, effectiveRadius)

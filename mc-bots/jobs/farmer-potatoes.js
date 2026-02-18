@@ -1,5 +1,5 @@
 const { Vec3 } = require('vec3')
-const { sleep, stopMotion, escapeWater, postToDataverse } = require('./utils')
+const { sleep, stopMotion, escapeWater, postToDataverse, stepToward } = require('./utils')
 
 const CROP = {
   block: 'potatoes',
@@ -82,10 +82,30 @@ function findFarmland(bot, radius) {
   })
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function getBrigadierEntity(bot, brigadierName) {
+  if (!brigadierName) return null
+  const player = bot.players[brigadierName]
+  return player && player.entity ? player.entity : null
+}
+
+function computeRadiusPenalty(distance, maxDistance) {
+  if (!Number.isFinite(maxDistance) || maxDistance <= 0) return 1
+  const ratio = clamp(distance / maxDistance, 0, 1)
+  return 1 - 0.65 * ratio * ratio
+}
+
 async function run(state, task, options) {
   const bot = state.bot
   const radius = Number(options.radius || 16)
   const idleMs = Number(options.idleMs || 800)
+  const brigadierName = options.brigadierName || 'comrade_remote'
+  const maxDistanceFromBrigadier = Number(options.maxDistanceFromBrigadier || 75)
+  const leashMargin = Number(options.leashMargin || 8)
+  const returnStepMs = Number(options.returnStepMs || 300)
   
   // Give starter kit immediately on spawn
   let kitGiven = false
@@ -134,8 +154,26 @@ async function run(state, task, options) {
       }
     }
 
+    const brigadier = getBrigadierEntity(bot, brigadierName)
+    if (brigadier) {
+      const distToBrigadier = bot.entity.position.distanceTo(brigadier.position)
+      if (distToBrigadier > maxDistanceFromBrigadier + leashMargin) {
+        if (lastStatus !== 'regrouping') {
+          bot.chat(`Too far from ${brigadierName}, returning to work zone`)
+          lastStatus = 'regrouping'
+        }
+        await stepToward(bot, brigadier.position, returnStepMs, true)
+        await sleep(100)
+        continue
+      }
+    }
+
+    const distForPenalty = brigadier ? bot.entity.position.distanceTo(brigadier.position) : 0
+    const radiusPenalty = brigadier ? computeRadiusPenalty(distForPenalty, maxDistanceFromBrigadier) : 1
+    const effectiveRadius = Math.max(6, Math.round(radius * radiusPenalty))
+
     // Look for ripe potatoes
-    const ripe = findRipeCrop(bot, radius)
+    const ripe = findRipeCrop(bot, effectiveRadius)
     if (ripe) {
       if (lastStatus !== 'harvesting') {
         bot.chat(`Found ripe potatoes! Starting harvest.`)
@@ -157,7 +195,7 @@ async function run(state, task, options) {
     }
 
     // Look for empty farmland to plant
-    const plot = findFarmland(bot, radius)
+    const plot = findFarmland(bot, effectiveRadius)
     if (plot) {
       searchCount = 0
       try {

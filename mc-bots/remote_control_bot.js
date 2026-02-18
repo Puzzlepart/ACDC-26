@@ -459,6 +459,16 @@ function buildTelemetry(state) {
     return { id: state ? state.id : 'unknown', inGame: false }
   }
 
+  const brigadierName = (state.jobOptions && state.jobOptions.brigadierName) || CONFIG.jobs.farmer.brigadierName || 'comrade_remote'
+  const brigadierPlayer = state.bot.players ? state.bot.players[brigadierName] : null
+  const brigadierEntity = brigadierPlayer && brigadierPlayer.entity ? brigadierPlayer.entity : null
+  const distanceToBrigadier = brigadierEntity
+    ? state.bot.entity.position.distanceTo(brigadierEntity.position)
+    : null
+  const maxDistanceFromBrigadier = Number(
+    (state.jobOptions && state.jobOptions.maxDistanceFromBrigadier) || CONFIG.jobs.farmer.maxDistanceFromBrigadier || 75
+  )
+
   const pos = state.bot.entity.position
   return {
     id: state.id,
@@ -470,6 +480,14 @@ function buildTelemetry(state) {
     yaw: state.bot.entity.yaw,
     pitch: state.bot.entity.pitch,
     job: state.jobName || null,
+    brigadier: {
+      name: brigadierName,
+      distance: Number.isFinite(distanceToBrigadier) ? Number(distanceToBrigadier.toFixed(2)) : null,
+      maxDistance: maxDistanceFromBrigadier,
+      inRange: Number.isFinite(distanceToBrigadier)
+        ? distanceToBrigadier <= maxDistanceFromBrigadier
+        : null
+    },
     task: state.activeTask ? state.activeTask.name : 'idle',
     inventory: state.bot.inventory.items().slice(0, 8).map(item => ({
       name: item.name,

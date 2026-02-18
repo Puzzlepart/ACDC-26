@@ -1,5 +1,5 @@
 const { Vec3 } = require('vec3')
-const { sleep, stopMotion, escapeWater, postToDataverse, isBotConnected } = require('./utils')
+const { sleep, stopMotion, escapeWater, postToDataverse, isBotConnected, stepToward } = require('./utils')
 
 // Configurable crop - defaults to wheat
 const CROPS = {
@@ -65,6 +65,22 @@ function findFarmland(bot, radius) {
   })
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function getBrigadierEntity(bot, brigadierName) {
+  if (!brigadierName) return null
+  const player = bot.players[brigadierName]
+  return player && player.entity ? player.entity : null
+}
+
+function computeRadiusPenalty(distance, maxDistance) {
+  if (!Number.isFinite(maxDistance) || maxDistance <= 0) return 1
+  const ratio = clamp(distance / maxDistance, 0, 1)
+  return 1 - 0.65 * ratio * ratio
+}
+
 async function wanderToNewArea(bot, task, duration) {
   if (!isBotConnected(bot)) return
   const dir = randomDirection()
@@ -96,6 +112,10 @@ async function run(state, task, options) {
   const idleMs = Number(options.idleMs || 1000)
   const wanderChance = Number(options.wanderChance || 0.3)
   const skipChance = Number(options.skipChance || 0.4)
+  const brigadierName = options.brigadierName || 'comrade_remote'
+  const maxDistanceFromBrigadier = Number(options.maxDistanceFromBrigadier || 75)
+  const leashMargin = Number(options.leashMargin || 8)
+  const returnStepMs = Number(options.returnStepMs || 300)
 
   let harvestCount = 0
   let totalHarvested = 0
@@ -117,6 +137,20 @@ async function run(state, task, options) {
       continue
     }
 
+    const brigadier = getBrigadierEntity(bot, brigadierName)
+    if (brigadier) {
+      const distToBrigadier = bot.entity.position.distanceTo(brigadier.position)
+      if (distToBrigadier > maxDistanceFromBrigadier + leashMargin) {
+        await stepToward(bot, brigadier.position, returnStepMs, true)
+        await sleep(100)
+        continue
+      }
+    }
+
+    const distForPenalty = brigadier ? bot.entity.position.distanceTo(brigadier.position) : 0
+    const radiusPenalty = brigadier ? computeRadiusPenalty(distForPenalty, maxDistanceFromBrigadier) : 1
+    const effectiveRadius = Math.max(6, Math.round(searchRadius * radiusPenalty))
+
     // Notify harvest after idle period
     if (harvestCount > 0 && lastHarvestAt > 0) {
       const harvestIdleMs = Date.now() - lastHarvestAt
@@ -136,7 +170,7 @@ async function run(state, task, options) {
     }
 
     // Look for ripe crops first
-    const ripe = findRipeCrop(bot, crop, searchRadius)
+    const ripe = findRipeCrop(bot, crop, effectiveRadius)
     if (ripe) {
       try {
         await bot.dig(ripe)
@@ -151,7 +185,7 @@ async function run(state, task, options) {
     }
 
     // Look for farmland to plant - but skip some randomly for sparse planting
-    const plot = findFarmland(bot, searchRadius)
+    const plot = findFarmland(bot, effectiveRadius)
     if (plot) {
       // Skip some plots to plant sparsely
       if (Math.random() < skipChance) {

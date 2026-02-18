@@ -1,5 +1,5 @@
 const { Vec3 } = require('vec3')
-const { sleep, stopMotion } = require('./utils')
+const { sleep, stopMotion, stepToward } = require('./utils')
 
 const CROPS = {
   wheat: { block: 'wheat', seed: 'wheat_seeds', ripeMeta: 7 },
@@ -33,11 +33,31 @@ function findFarmland(bot, radius) {
   })
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function getBrigadierEntity(bot, brigadierName) {
+  if (!brigadierName) return null
+  const player = bot.players[brigadierName]
+  return player && player.entity ? player.entity : null
+}
+
+function computeRadiusPenalty(distance, maxDistance) {
+  if (!Number.isFinite(maxDistance) || maxDistance <= 0) return 1
+  const ratio = clamp(distance / maxDistance, 0, 1)
+  return 1 - 0.65 * ratio * ratio
+}
+
 async function run(state, task, options) {
   const bot = state.bot
   const crop = CROPS[options.crop] || CROPS.wheat
   const radius = Number(options.radius || 6)
   const idleMs = Number(options.idleMs || 800)
+  const brigadierName = options.brigadierName || 'comrade_remote'
+  const maxDistanceFromBrigadier = Number(options.maxDistanceFromBrigadier || 75)
+  const leashMargin = Number(options.leashMargin || 8)
+  const returnStepMs = Number(options.returnStepMs || 300)
 
   while (!task.cancelled) {
     if (!bot.entity) {
@@ -45,13 +65,27 @@ async function run(state, task, options) {
       continue
     }
 
-    const ripe = findRipeCrop(bot, crop, radius)
+    const brigadier = getBrigadierEntity(bot, brigadierName)
+    if (brigadier) {
+      const distToBrigadier = bot.entity.position.distanceTo(brigadier.position)
+      if (distToBrigadier > maxDistanceFromBrigadier + leashMargin) {
+        await stepToward(bot, brigadier.position, returnStepMs, true)
+        await sleep(100)
+        continue
+      }
+    }
+
+    const distForPenalty = brigadier ? bot.entity.position.distanceTo(brigadier.position) : 0
+    const radiusPenalty = brigadier ? computeRadiusPenalty(distForPenalty, maxDistanceFromBrigadier) : 1
+    const effectiveRadius = Math.max(6, Math.round(radius * radiusPenalty))
+
+    const ripe = findRipeCrop(bot, crop, effectiveRadius)
     if (ripe) {
       await bot.dig(ripe)
       continue
     }
 
-    const plot = findFarmland(bot, radius)
+    const plot = findFarmland(bot, effectiveRadius)
     if (plot) {
       try {
         await bot.equip(bot.registry.itemsByName[crop.seed].id, 'hand')

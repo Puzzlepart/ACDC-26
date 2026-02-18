@@ -3,6 +3,8 @@ const SETTINGS_KEY = 'cccpccc.settings.v1'
 
 const statusEl = document.getElementById('status')
 const telemetryEl = document.getElementById('telemetry')
+const performanceEl = document.getElementById('performance')
+const performanceSummaryEl = document.getElementById('performance-summary')
 const viewerEl = document.getElementById('viewer')
 const overlayEl = document.getElementById('viewer-overlay')
 const botSelectEl = document.getElementById('bot-select')
@@ -68,7 +70,7 @@ const keyMap = new Map([
 const cards = Array.from(document.querySelectorAll('.card[data-card-id]'))
 const cardMap = new Map(cards.map(card => [card.dataset.cardId, card]))
 const layoutState = loadLayoutState()
-const resizableCards = new Set(['telemetry', 'viewer'])
+const resizableCards = new Set(['telemetry', 'performance', 'viewer'])
 
 applyLayoutState()
 bindCardActions()
@@ -111,6 +113,19 @@ if (overlayEl) {
 
 function logStatus(text) {
   statusEl.textContent = text
+}
+
+function formatPerformanceSummary(perf) {
+  if (!perf || typeof perf !== 'object') return 'Waiting for telemetry...'
+
+  const cpu = Number.isFinite(perf.cpuPctSingleCore) ? `${perf.cpuPctSingleCore.toFixed(1)}%` : 'n/a'
+  const host = Number.isFinite(perf.cpuPctHost) ? `${perf.cpuPctHost.toFixed(1)}%` : 'n/a'
+  const rss = perf.memory && Number.isFinite(perf.memory.rssMB) ? `${perf.memory.rssMB.toFixed(1)}MB` : 'n/a'
+  const heap = perf.memory && Number.isFinite(perf.memory.heapUsedMB) ? `${perf.memory.heapUsedMB.toFixed(1)}MB` : 'n/a'
+  const bots = Number.isFinite(perf.bots) ? perf.bots : 'n/a'
+  const ws = Number.isFinite(perf.wsClients) ? perf.wsClients : 'n/a'
+
+  return `CPU ${cpu} | Host ${host} | RSS ${rss} | Heap ${heap} | Bots ${bots} | WS ${ws}`
 }
 
 function send(type, args = {}, options = {}) {
@@ -291,6 +306,13 @@ document.getElementById('connect').addEventListener('click', () => {
       const bots = data.payload && data.payload.bots ? data.payload.bots : []
       const active = bots.find(bot => bot.id === selectedBotId) || bots[0]
       telemetryEl.textContent = JSON.stringify(active || {}, null, 2)
+      if (performanceEl) {
+        const perf = data.payload && data.payload.performance ? data.payload.performance : {}
+        if (performanceSummaryEl) {
+          performanceSummaryEl.textContent = formatPerformanceSummary(perf)
+        }
+        performanceEl.textContent = JSON.stringify(perf, null, 2)
+      }
     }
     if (data.type === 'hello') {
       const { bots, defaultBotId, lookSensitivity: serverSensitivity, viewerHost: hostOverride, jobs, mindcraft } = data.payload

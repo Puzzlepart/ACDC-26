@@ -85,7 +85,7 @@ function findFarmland(bot, radius) {
 
 async function run(state, task, options) {
   const bot = state.bot
-  const radius = Number(options.radius || 100)
+  const radius = Number(options.radius || 16)
   const idleMs = Number(options.idleMs || 800)
   
   // Give starter kit immediately on spawn
@@ -149,6 +149,7 @@ async function run(state, task, options) {
         totalHarvested++
         lastHarvestAt = Date.now()
         lastActivity = Date.now()
+        await sleep(150)
       } catch (error) {
         console.log(`[farmer-wheat] ${bot.username} harvest failed:`, error.message)
         await sleep(idleMs)
@@ -186,6 +187,7 @@ async function run(state, task, options) {
         await bot.placeBlock(plot, new Vec3(0, 1, 0))
         plantCount++
         lastActivity = Date.now()
+        await sleep(150)
         
         // Only announce every 10 plants
         if (plantCount % 10 === 0) {

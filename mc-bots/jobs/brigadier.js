@@ -119,17 +119,18 @@ async function run(state, task, options) {
   const MIN_SUPPLY_INTERVAL = 5000 // 5 seconds between supplies to same player
   
   // Listen for player join events
-  bot.on('playerJoined', player => {
+  const onPlayerJoined = player => {
     if (player.username === bot.username) return
     if (!greetOnJoin) return
     
     console.log(`[brigadier] Worker joined: ${player.username}`)
     bot.chat(`Welcome, comrade ${player.username}!`)
-  })
+  }
+  bot.on('playerJoined', onPlayerJoined)
   
   // Listen for chat messages requesting supplies
   // Use 'chat' event which provides username and message directly
-  bot.on('chat', async (username, message) => {
+  const onChat = async (username, message) => {
     try {
       // Debug: log all chat messages
       console.log(`[brigadier] Chat: <${username}> ${message}`)
@@ -176,20 +177,25 @@ async function run(state, task, options) {
     } catch (error) {
       console.error(`[brigadier] Error processing chat:`, error)
     }
-  })
-  
-  // Idle loop - brigadier just manages and waits
-  while (!task.cancelled) {
-    await sleep(2000)
-    
-    // Could add periodic checks here:
-    // - Check worker health
-    // - Monitor farm progress
-    // - Report statistics
   }
+  bot.on('chat', onChat)
   
-  stopMotion(bot)
-  bot.chat('Brigadier standing down.')
+  try {
+    // Idle loop - brigadier just manages and waits
+    while (!task.cancelled) {
+      await sleep(2000)
+      
+      // Could add periodic checks here:
+      // - Check worker health
+      // - Monitor farm progress
+      // - Report statistics
+    }
+  } finally {
+    bot.removeListener('playerJoined', onPlayerJoined)
+    bot.removeListener('chat', onChat)
+    stopMotion(bot)
+    bot.chat('Brigadier standing down.')
+  }
 }
 
 module.exports = {

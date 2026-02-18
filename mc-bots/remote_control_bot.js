@@ -1,6 +1,7 @@
 const http = require('http')
 const fs = require('fs')
 const path = require('path')
+const os = require('os')
 const EventEmitter = require('events')
 const compression = require('compression')
 const express = require('express')
@@ -43,6 +44,12 @@ const CONFIG = {
   viewerHost: process.env.VIEWER_HOST || 'cam.craycon.no',
   authToken: process.env.BOT_AUTH_TOKEN || '',
   lookSensitivity: Number(process.env.LOOK_SENSITIVITY || 0.0025),
+  telemetryIntervalMs: Number(process.env.TELEMETRY_INTERVAL_MS || 1000),
+  viewerPositionIntervalMs: Number(process.env.VIEWER_POSITION_INTERVAL_MS || 100),
+  perfLog: {
+    enabled: process.env.PERF_LOG_ENABLED === 'true',
+    intervalMs: Number(process.env.PERF_LOG_INTERVAL_MS || 10000)
+  },
   autoJump: process.env.AUTO_JUMP ? process.env.AUTO_JUMP === 'true' : true,
   uiPath: process.env.CONTROL_UI_PATH
     ? path.resolve(process.env.CONTROL_UI_PATH)
@@ -63,7 +70,11 @@ const CONFIG = {
     farmer: {
       crop: process.env.FARMER_CROP || 'wheat',
       radius: Number(process.env.FARMER_RADIUS || 6),
-      idleMs: Number(process.env.FARMER_IDLE_MS || 800)
+      idleMs: Number(process.env.FARMER_IDLE_MS || 800),
+      brigadierName: process.env.BRIGADIER_NAME || 'comrade_remote',
+      maxDistanceFromBrigadier: Number(process.env.FARMER_MAX_DISTANCE_FROM_BRIGADIER || 75),
+      leashMargin: Number(process.env.FARMER_LEASH_MARGIN || 8),
+      returnStepMs: Number(process.env.FARMER_RETURN_STEP_MS || 300)
     },
     guard: {
       radius: Number(process.env.GUARD_RADIUS || 8),
@@ -145,6 +156,9 @@ let nextViewerPort = CONFIG.viewerPort
 let defaultBotId = null
 
 let telemetryTimer = null
+let perfLogTimer = null
+let perfLastCpu = process.cpuUsage()
+let perfLastTime = process.hrtime.bigint()
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host}`)
@@ -264,7 +278,12 @@ function createViewerServer(state) {
       socket.emit('primitive', primitives[id])
     }
 
+    let lastPositionUpdate = 0
+
     function botPosition() {
+      const now = Date.now()
+      if (now - lastPositionUpdate < CONFIG.viewerPositionIntervalMs) return
+      lastPositionUpdate = now
       const packet = { pos: bot.entity.position, yaw: bot.entity.yaw, addMesh: true, pitch: bot.entity.pitch }
       socket.emit('position', packet)
       worldView.updatePosition(bot.entity.position)
@@ -462,17 +481,81 @@ function buildTelemetry(state) {
 function startTelemetry() {
   if (telemetryTimer) return
   telemetryTimer = setInterval(() => {
+    if (bots.size === 0) {
+      stopTelemetry()
+      return
+    }
+    if (wss.clients.size === 0) {
+      return
+    }
+    const performance = collectPerformanceSnapshot()
     const payload = {
-      bots: Array.from(bots.values()).map(state => buildTelemetry(state))
+      bots: Array.from(bots.values()).map(state => buildTelemetry(state)),
+      performance
     }
     broadcast({ type: 'telemetry', payload, ts: Date.now() })
-  }, 500)
+  }, CONFIG.telemetryIntervalMs)
 }
 
 function stopTelemetry() {
   if (!telemetryTimer) return
   clearInterval(telemetryTimer)
   telemetryTimer = null
+}
+
+function startPerfLogging() {
+  if (!CONFIG.perfLog.enabled || perfLogTimer) return
+  perfLastCpu = process.cpuUsage()
+  perfLastTime = process.hrtime.bigint()
+
+  perfLogTimer = setInterval(() => {
+    const perf = collectPerformanceSnapshot()
+    if (!perf) return
+
+    console.log(
+      `[perf] cpu=${perf.cpuPctSingleCore.toFixed(1)}%_core (${perf.cpuPctHost.toFixed(1)}%_host) rss=${perf.memory.rssMB.toFixed(1)}MB heapUsed=${perf.memory.heapUsedMB.toFixed(1)}MB bots=${perf.bots} ws=${perf.wsClients} load=${perf.loadAvg.map(v => v.toFixed(2)).join('/')}`
+    )
+  }, Math.max(1000, CONFIG.perfLog.intervalMs))
+}
+
+function stopPerfLogging() {
+  if (!perfLogTimer) return
+  clearInterval(perfLogTimer)
+  perfLogTimer = null
+}
+
+function collectPerformanceSnapshot() {
+  const cpuCount = Math.max(1, os.cpus().length)
+  const now = process.hrtime.bigint()
+  const elapsedUs = Number(now - perfLastTime) / 1000
+  const cpuNow = process.cpuUsage()
+  const deltaUser = cpuNow.user - perfLastCpu.user
+  const deltaSystem = cpuNow.system - perfLastCpu.system
+  const deltaTotalUs = deltaUser + deltaSystem
+
+  perfLastCpu = cpuNow
+  perfLastTime = now
+
+  if (elapsedUs <= 0) return null
+
+  const cpuPctSingleCore = (deltaTotalUs / elapsedUs) * 100
+  const cpuPctHost = cpuPctSingleCore / cpuCount
+  const mem = process.memoryUsage()
+
+  return {
+    cpuPctSingleCore,
+    cpuPctHost,
+    memory: {
+      rssMB: mem.rss / 1024 / 1024,
+      heapUsedMB: mem.heapUsed / 1024 / 1024,
+      heapTotalMB: mem.heapTotal / 1024 / 1024
+    },
+    loadAvg: os.loadavg(),
+    bots: bots.size,
+    wsClients: wss.clients.size,
+    uptimeSec: process.uptime(),
+    ts: Date.now()
+  }
 }
 
 function clamp(value, min, max) {
@@ -543,7 +626,8 @@ function getJobList() {
 }
 
 function buildJobOptions(jobName, overrides = {}) {
-  const base = CONFIG.jobs[jobName] || {}
+  const baseFarmer = jobName.startsWith('farmer-') ? (CONFIG.jobs.farmer || {}) : {}
+  const base = { ...baseFarmer, ...(CONFIG.jobs[jobName] || {}) }
   const options = { ...base, ...overrides }
   // Include dataverse webhook URL for farmer jobs
   if (CONFIG.dataverse.enabled && CONFIG.dataverse.webhookUrl) {
@@ -602,6 +686,9 @@ function despawnBot(state, reason = 'disconnect') {
     }
   }
   bots.delete(state.id)
+  if (bots.size === 0) {
+    stopTelemetry()
+  }
   if (defaultBotId === state.id) {
     defaultBotId = bots.keys().next().value || null
   }
@@ -860,6 +947,9 @@ function spawnBot({ username, host, port, jobType, autoStartJob = true }) {
       if (bots.has(id) && bots.get(id).disconnectTime) {
         console.log(`[remote-control] Removing disconnected bot: ${id}`)
         bots.delete(id)
+        if (bots.size === 0) {
+          stopTelemetry()
+        }
         broadcastBotList()
       }
     }, 30000)
@@ -906,6 +996,10 @@ wss.on('connection', (ws, req) => {
         host: mindcraftConfig.host,
         port: mindcraftConfig.port,
         profiles: listMindcraftProfiles()
+      },
+      performance: {
+        enabled: CONFIG.perfLog.enabled,
+        intervalMs: CONFIG.perfLog.intervalMs
       }
     }
   })
@@ -1271,5 +1365,14 @@ for (const name of initialBotNames) {
 }
 
 server.listen(CONFIG.controlPort, () => {
+  startPerfLogging()
   console.log(`[remote-control] ui on http://localhost:${CONFIG.controlPort}`)
+})
+
+process.on('SIGINT', () => {
+  stopPerfLogging()
+})
+
+process.on('SIGTERM', () => {
+  stopPerfLogging()
 })

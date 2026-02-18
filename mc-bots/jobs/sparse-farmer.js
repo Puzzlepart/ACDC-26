@@ -92,7 +92,7 @@ async function run(state, task, options) {
   const bot = state.bot
   const cropType = options.crop || 'wheat'
   const crop = CROPS[cropType] || CROPS.wheat
-  const searchRadius = Number(options.radius || 50)
+  const searchRadius = Number(options.radius || 24)
   const idleMs = Number(options.idleMs || 1000)
   const wanderChance = Number(options.wanderChance || 0.3)
   const skipChance = Number(options.skipChance || 0.4)

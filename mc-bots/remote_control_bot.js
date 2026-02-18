@@ -160,6 +160,7 @@ let telemetryTimer = null
 let perfLogTimer = null
 let perfLastCpu = process.cpuUsage()
 let perfLastTime = process.hrtime.bigint()
+let isShuttingDown = false
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host}`)
@@ -1468,10 +1469,61 @@ server.listen(CONFIG.controlPort, () => {
   console.log(`[remote-control] ui on http://localhost:${CONFIG.controlPort}`)
 })
 
-process.on('SIGINT', () => {
+function shutdown(signal) {
+  if (isShuttingDown) return
+  isShuttingDown = true
+
+  console.log(`[remote-control] received ${signal}, shutting down`)
   stopPerfLogging()
+  stopTelemetry()
+
+  for (const state of Array.from(bots.values())) {
+    despawnBot(state, 'shutdown')
+  }
+
+  if (mindcraftSocket) {
+    try {
+      mindcraftSocket.disconnect()
+    } catch (error) {
+      console.error('[remote-control] mindcraft disconnect failed', error)
+    }
+    mindcraftSocket = null
+    mindcraftConnected = false
+    mindcraftConnecting = null
+  }
+
+  for (const ws of wss.clients) {
+    try {
+      ws.close(1001, 'Server shutting down')
+    } catch (error) {
+      // ignore close errors while shutting down
+    }
+  }
+
+  try {
+    wss.close()
+  } catch (error) {
+    console.error('[remote-control] websocket server close failed', error)
+  }
+
+  try {
+    server.close(() => {
+      process.exit(0)
+    })
+  } catch (error) {
+    console.error('[remote-control] http server close failed', error)
+    process.exit(0)
+  }
+
+  setTimeout(() => {
+    process.exit(0)
+  }, 1500).unref()
+}
+
+process.on('SIGINT', () => {
+  shutdown('SIGINT')
 })
 
 process.on('SIGTERM', () => {
-  stopPerfLogging()
+  shutdown('SIGTERM')
 })
